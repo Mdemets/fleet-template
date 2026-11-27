@@ -26,5 +26,5 @@ Every proposal opens with `Status:` and one of:
 Commit, merge, rebase, reset or edit files inside a project repository on any station. Read-only
 inspection, bundling (which adds no repository content) and this directory are the limits.
 
-Documentation in `fleet-template` remains the auditor's own - it is not a project repository and
+Documentation in `ai-workfleet-template` remains the auditor's own - it is not a project repository and
 the coordinator does not read it. If that should change too, say so and it moves here as well.

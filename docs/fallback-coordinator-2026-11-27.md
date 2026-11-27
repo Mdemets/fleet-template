@@ -1,7 +1,7 @@
 # FALLBACK COORDINATOR - temporary
 
 This share is the fleet's coordinator only because node-a is unavailable (reboot 2026-11-27, did
-not return; see fleet-template docs/incident-2026-11-27-reboot.md).
+not return; see ai-workfleet-template docs/incident-2026-11-27-reboot.md).
 
 | | |
 |---|---|

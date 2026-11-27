@@ -44,7 +44,7 @@ earlier one, which loses work quietly and is invisible after the fact.
 ## R3 - Every rule and behaviour change reaches the template
 
 Set 2026-11-27. Any newly adopted rule, or any change to working behaviour, is added to the
-`fleet-template` repository **in the same pass it is adopted** - `AGENTS.md` for the rule as an agent
+`ai-workfleet-template` repository **in the same pass it is adopted** - `AGENTS.md` for the rule as an agent
 must read it, `docs/rules.md` for the reasoning and history.
 
 - The lab's `RULES.md` and the template's `AGENTS.md` must not diverge. A rule present in only one

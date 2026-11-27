@@ -87,7 +87,7 @@ Every sweep appends one line to `D:/fleet/reaper.log`.
    internet-exposed: hardware firewall at the perimeter plus ISP-level protection,
    reachable only through the OpenVPN tunnel to the Synology. Do not re-raise it.
    (Worker share accounts are separate and were rotated 2026-11-27 09:54-09:55;
-    see the rotation log in fleet-template docs/auditor-role.md.)
+    see the rotation log in ai-workfleet-template docs/auditor-role.md.)
 1. On node-a, as administrator:
        ./New-FleetShare.ps1 -Workers node-b,node-c
    Writes D:/fleet/worker-credentials.csv with one unique password per worker account.
@@ -146,7 +146,7 @@ auditor and repository manager acts on his instruction and holds the SSH key nam
   (operator workstation) over the OpenVPN tunnel.
 - **Where it is authorised.** `C:\ProgramData\ssh\administrators_authorized_keys` on all three
   nodes, alongside node-c's own key.
-- **Scope and limits.** The contract is `fleet-template` -> `docs/auditor-role.md`. In short:
+- **Scope and limits.** The contract is `ai-workfleet-template` -> `docs/auditor-role.md`. In short:
   read-only audit across the nodes; local commits and bundles; documentation in that repository;
   **no** pushes to repositories the operator does not own; **no** production actions - worker
   restart, share or queue changes, credential rotation, service changes - without an explicit
@@ -171,7 +171,7 @@ no commit, merge, rebase, reset or file edit. Changes are proposed in `D:\fleet\
 coordinator decides and applies them.
 
 Allowed without a proposal: read-only inspection, bundling (adds no repository content), this
-share's own records, and documentation in `fleet-template`.
+share's own records, and documentation in `ai-workfleet-template`.
 
 A proposal names what changes, why, which files, the evidence that it works, the risk and how to
 revert. Status is `proposed`, `accepted` or `rejected`, and an accepted proposal records the

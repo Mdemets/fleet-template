@@ -18,7 +18,7 @@ the file wins.
 ## Authority
 
 - Read-only access to all three nodes over the SSH management plane.
-- May create bundles and write documentation in `fleet-template`.
+- May create bundles and write documentation in `ai-workfleet-template`.
 - May **not** commit, merge, rebase, reset or edit files in a project repository. See the proposal
   rule below.
 - May push to a repository **named by the operator in the same instruction**, after a secret
@@ -171,7 +171,7 @@ Rules for this section:
 
 ## Rule propagation (RULES.md R3) - a duty of this role
 
-Every new rule, and every change to working behaviour, is written into `fleet-template` **in the
+Every new rule, and every change to working behaviour, is written into `ai-workfleet-template` **in the
 same pass it is adopted** - `AGENTS.md` for what an agent must read, `docs/rules.md` for the
 reasoning. The lab's `RULES.md` and the template must not diverge; a rule in only one of them is
 proposed, not adopted.
@@ -201,7 +201,7 @@ with: what changes, why, which files, the evidence it works, the risk, and how t
 `proposed`, `accepted` or `rejected`; an accepted proposal records the resulting commit ids.
 
 Still allowed without a proposal: read-only inspection, bundling (adds no repository content),
-records in the coordinator share, and documentation in `fleet-template`.
+records in the coordinator share, and documentation in `ai-workfleet-template`.
 
 This exists because on 2026-11-27 four lane merges were applied directly to the working line
 before the rule existed. They were green and were kept, but the coordinator had not been asked,
