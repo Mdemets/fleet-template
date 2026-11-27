@@ -109,6 +109,11 @@ fleet works on.
   project that produced them. The *investigation's output* belongs with the project; the *lesson about
   how it was run* belongs here.
 
+## Announcement
+
+ANNOUNCEMENT.md is the shareable write-up: what this does, the measured numbers, and the credit to
+the upstream projects that made it necessary.
+
 ## Credits
 
 docs/provenance.md records where the work came from and what it owes the two upstream projects that
