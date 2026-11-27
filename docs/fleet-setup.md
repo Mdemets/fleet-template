@@ -12,7 +12,20 @@ measurements and the failures that produced them are in `parallel-workers-2026-1
 | node-b | worker | `10.0.0.11` static | `\\10.0.0.10\fleet` | 8 |
 | node-c | worker | DHCP | `\\10.0.0.10\fleet` | 8 |
 
-Measured throughput of that arrangement: **200 tasks in 6.4 s (31.4 tasks/s), zero duplicates**.
+Measured throughput of that arrangement, 2026-11-27, three stations at 16/32/16 slots:
+
+| measurement | value |
+|---|---|
+| creation rate (coordinator) | ~40 dispatches/s sustained |
+| completion rate (fleet) | ~26 dispatches/s |
+| per station | mdma 8.2/s, gr2c3p8 7.1/s, mdmfury 0.7/s (parked by policy) |
+| peak concurrency | 16/16, 25/32, 16/16 = 87.5% of 64 slots |
+| queue at steady state | several hundred, refill-triggered |
+
+The earlier figure - 200 tasks in 6.4 s, 31.4 tasks/s - was a synthetic burst against an empty queue
+and measured claim/drain speed, not sustained throughput. Both are real; they answer different
+questions. Monitoring figures and their failure modes: docs/monitoring.md. Supply side:
+docs/task-creation.md.
 
 ## Coordinator
 

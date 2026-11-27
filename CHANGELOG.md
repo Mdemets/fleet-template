@@ -1,3 +1,12 @@
+﻿## 2026-11-27 - monitoring, task creation, measured throughput
+
+- docs/monitoring.md - the four fleet figures, the four ways they lie (unit, window, clock, cache),
+  why utilisation penalises the fastest station, and why claim residue is not work in flight.
+- docs/task-creation.md - supply loop, caching the source so execution never blocks on a network
+  call, batching for task duration, the high-water mark that actually sets queue depth, and why
+  manufacturing load is the failure mode of "keep the fleet busy".
+- docs/fleet-setup.md - sustained throughput measured on three stations replaces the single-burst
+  figure as the headline, with both retained and labelled.
 # Changelog
 
 What changed, when, and why. Newest first. Measurements are from the fleet as it ran, not projections.
