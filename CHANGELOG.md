@@ -1,3 +1,8 @@
+## 2026-11-27 (late) - credit for free AI to the people
+
+- `CREDITS.md`: DeepAI Code credited in the operator's words for offering an awesome tool *and free AI
+  to the people* - a desktop app with working models, no trial, no teaser.
+
 ## 2026-11-27 (late) - free tier means lowest priority, not an outage
 
 - `docs/fleet-setup.md`: records that a free account is served behind paid traffic - a latency

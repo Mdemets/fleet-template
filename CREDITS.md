@@ -29,7 +29,12 @@ It also supplies the models named above (`deepseek-v4.1-flash` as coordinator, `
 `qwen-3.8-flash`, `claude-haiku-5-5` as independent lanes), and its bundled agent SDK is what allowed
 verification by a second model rather than by the author of the work.
 
-And, plainly: **for offering an awesome tool.** It is the piece that turned three spare machines into
+And, plainly: **for offering an awesome tool - and free AI to the people.** Not a trial, not a
+teaser with a credit card behind it: a desktop app, working models, on every machine that asked, for
+nothing. Three stations got a reasoning lane out of it, and the whole experiment happened because
+trying it cost a free account and twenty minutes.
+
+That is rarer than it should be, and it deserves saying out loud rather than being assumed. It is the piece that turned three spare machines into
 something that could notice its own failures, argue about them, and write down what it learned - and
 the fact that trying it cost nothing is why the attempt happened at all.
 
