@@ -1,3 +1,8 @@
+## 2026-11-27 (late) - adding a reasoning station costs nothing
+
+- `docs/fleet-setup.md`: a free DeepAI account is the only requirement to give a new station a
+  reasoning runtime - install, sign in once, done. No key, no per-seat licence.
+
 ## 2026-11-27 (late) - DeepAI Code is part of station provisioning
 
 - `docs/fleet-setup.md`: new prerequisite - DeepAI Code on every station at one pinned version, signed
