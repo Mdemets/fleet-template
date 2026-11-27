@@ -57,28 +57,33 @@ must read it, `docs/rules.md` for the reasoning and history.
 
 The auditor is responsible for this propagation as part of the role, not as a favour.
 
-## R4 and R5 - drafted, awaiting adoption
+## R4 and R5 - adopted 2026-11-27
 
-Both come from the 2026-11-27 session and are recorded here as drafts. Under R3 they do not enter
-`AGENTS.md` until the human adopts them.
+Both came from the same session as R1-R3. R5 was adopted as drafted; R4 was adopted with one
+amendment recorded below.
 
-### R4 - Name the recovery path before any restart
+### R4 - A restart needs a named recovery path and the operator's agreement
 
-Before restarting or rebooting a station, state how it comes back. A headless machine with no
-out-of-band access (no IPMI, no console) cannot be recovered remotely if the boot fails, so that reboot
-is a physical intervention and the decision belongs to the operator.
+**Adopted text:** before restarting or rebooting a station, state how it comes back. Without a
+recovery path (console, a second admin channel, or someone physically present), ask the operator
+before restarting.
 
-Evidence: the coordinator was rebooted to repair a WMI provider and never returned to the network.
-Recovery waited for a human. The proposal had named no way back.
+**Amendment at adoption:** the draft said a restart without out-of-band access "is a physical
+intervention, so the decision belongs to the operator" - which reads as a blanket prohibition. The
+adopted form permits the restart when the recovery path is named and the operator agrees, because the
+restart in question was the correct action. What was missing was the way back, not the permission.
+
+**Evidence:** a restart to repair a WMI provider was proposed without a way back; the station booted
+and did not rejoin the network; recovery waited for a human.
 
 ### R5 - A bundle is durable only off the machine that made it
 
-Any bundle refresh writes the off-machine copy in the same pass, and the copy's tip is compared against
-the source's - not assumed.
+**Adopted text:** any bundle refresh writes the off-machine copy in the same pass, and the copy's tip
+is compared against the source's, not assumed. Throwaway snapshots are exempt.
 
-Evidence: the bundle holding four lane merges existed only on the coordinator; the off-site copy was
-four merges stale when the coordinator went down. Recovery worked only because the lane branches
-happened to be inside the older bundle.
+**Evidence:** the bundle holding four merges existed only on the coordinator; when it went down the
+off-site copy was four merges stale, and recovery worked only because the branch pointers survived
+inside the older bundle.
 
 ## R6 and R7 - adopted 2026-11-27 (thinking protocol P1 and P2)
 

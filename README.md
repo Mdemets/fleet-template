@@ -59,11 +59,13 @@ signal that catches it.
 | R1 | The coordinator owns the project files; changes are proposed, not applied |
 | R2 | Instruction updates are handled sequentially; new input never dismisses an earlier request |
 | R3 | Every rule and behaviour change reaches this repository in the same pass it is adopted |
+| R4 | A restart needs a named recovery path and the operator's agreement |
+| R5 | A bundle is durable only off the machine that made it |
 | R6 | Falsify before explaining: obtain the disproof before writing a cause or a fix |
 | R7 | Ask the question that separates two live hypotheses instead of running more confirming tests |
 
-R4 (name the recovery path before a restart) and R5 (a bundle is durable only off the machine that
-made it) are drafted in `docs/rules.md`, awaiting adoption. `AGENTS.md` is the full text; R6 and R7
+R4 and R5 guard against rare but expensive events: a restart with no way back, and a bundle that only
+exists on the machine that made it. `AGENTS.md` is the full text; R6 and R7
 came from `docs/thinking-protocol.md`.
 
 ## What is in here

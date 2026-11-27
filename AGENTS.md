@@ -92,6 +92,36 @@ is adopted**: the rule as an agent must read it in this file, the reasoning and 
 This repository is the part of a fleet that survives it. A rule learned in a run and not written
 here is learned once and lost.
 
+### R4 - A restart needs a named recovery path and the operator's agreement
+
+Before restarting or rebooting a station, state how it comes back. A machine with no out-of-band access
+(no IPMI, no console) cannot be recovered remotely if the boot fails, so that restart is a physical
+intervention, not a maintenance action:
+
+- Name the recovery path in the same breath as the intent: console access, a second admin channel, or
+  someone physically present.
+- Without a recovery path, ask the operator before restarting. Do not restart and hope.
+- A station that is the coordinator deserves the strictest reading: if it does not return, the queue
+  goes with it.
+
+Evidence: a restart to repair a WMI provider was proposed without a way back, the station booted and
+did not rejoin the network, and recovery waited for a human to walk to it. The restart was correct; the
+missing recovery path turned it into an outage.
+
+### R5 - A bundle is durable only off the machine that made it
+
+Any bundle refresh writes the off-machine copy in the same pass, and the copy's tip is compared
+against the source's - not assumed.
+
+- "In the same pass" means the copy is part of the bundling step, not a later intention.
+- Compare tips. A bundle that exists elsewhere but is older than the work it should carry is not a
+  backup, and the staleness is invisible until the moment it matters.
+- Throwaway snapshots are exempt; bundles that carry merged work are not.
+
+Evidence: the bundle holding four merges existed only on the coordinator. When the coordinator went
+down, the off-site copy was four merges stale. Recovery worked by luck, because the branch pointers
+happened to survive inside the older bundle.
+
 ### R6 - Falsify before explaining
 
 Before writing a fix, or reporting a cause, state the observation that would **disprove** it - and
