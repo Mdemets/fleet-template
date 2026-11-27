@@ -1,3 +1,8 @@
+## 2026-11-27 (late) - credit where it is due
+
+- `CREDITS.md`: DeepAI Code credited for offering an awesome tool, in the operator's words - the piece
+  that turned three spare machines into a fleet that could notice its own failures.
+
 ## 2026-11-27 (late) - DeepAI Code credited as the free reasoning runtime
 
 - `CREDITS.md`: a section crediting DeepAI Code - the free runtime the fleet's reasoning lane runs on,
