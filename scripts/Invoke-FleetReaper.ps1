@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Root = 'D:/fleet',
     [int]$GraceSeconds = 300,
     [int]$MaxAttempts = 3,
@@ -57,8 +57,14 @@ foreach ($nodeDir in @(Get-ChildItem -LiteralPath $claimed -Directory -ErrorActi
         # backlogged task used to look stale the instant it was claimed and was requeued while
         # still running. Prefer an explicit claim time; fall back to the file timestamp.
         $claimedAt = $f.LastWriteTime.ToUniversalTime()
+        # The claim marker is created at claim time and removed at completion, so its timestamp
+        # is the most reliable claim age. The results sidecar remains only as a legacy fallback.
+        $markFile = Join-Path (Join-Path $Root 'locks') ($f.Name + '.claim')
+        if (Test-Path -LiteralPath $markFile) {
+            $claimedAt = (Get-Item -LiteralPath $markFile).LastWriteTime.ToUniversalTime()
+        }
         $claimRec = Join-Path $results ($node + '\claims\' + $id + '.json')
-        if (Test-Path -LiteralPath $claimRec) {
+        if (-not (Test-Path -LiteralPath $markFile) -and (Test-Path -LiteralPath $claimRec)) {
             try {
                 $rec = Get-Content -LiteralPath $claimRec -Raw | ConvertFrom-Json
                 if ($rec.claimedAt) { $claimedAt = [datetime]::Parse([string]$rec.claimedAt).ToUniversalTime() }

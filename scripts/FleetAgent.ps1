@@ -54,7 +54,7 @@ function Complete-Task($key) {
             timedOut = $timedOut; stdout = $outText; stderr = $errText; error = $(if ($timedOut) { 'timed out' } else { $null })
         }
         [IO.File]::WriteAllText((Join-Path $myRes ('result-' + $j.Id + '.json')), ($res | ConvertTo-Json -Depth 3), (New-Object Text.UTF8Encoding($false)))
-        Remove-Item -LiteralPath $j.Claim -Force -ErrorAction SilentlyContinue
+        if ($j.Claim) { Remove-Item -LiteralPath $j.Claim -Force -ErrorAction SilentlyContinue }
         Remove-Item -LiteralPath $j.ClaimFile -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $j.Mark -Force -ErrorAction SilentlyContinue
     } catch { Alog ('complete failed ' + $j.Id + ': ' + $_.Exception.Message) }
@@ -74,16 +74,14 @@ while ($true) {
                 try { Move-Item -LiteralPath $f.FullName -Destination $dest -ErrorAction Stop } catch { Remove-Item $mark -Force -ErrorAction SilentlyContinue; continue }
                 $id = ($f.BaseName -replace '^task-','')
                 $claimedAt = (Get-Date).ToUniversalTime().ToString('o')
-                $claimRec = Join-Path (Join-Path $myRes 'claims') ($id + '.json')
-                New-Item -ItemType Directory -Force -Path (Split-Path $claimRec) | Out-Null
-[IO.File]::WriteAllText($claimRec, (@{ id = $id; node = $node; claimedAt = $claimedAt } | ConvertTo-Json -Compress), (New-Object Text.UTF8Encoding($false)))
+                # The marker in locks/ is the claim record: its creation time is the claim time.
                 try {
                     $task = Get-Content -LiteralPath $dest -Raw | ConvertFrom-Json
                     $ps = [powershell]::Create()
                     $ps.RunspacePool = $pool
                     [void]$ps.AddScript([string]$task.payload.script)
                     $handle = $ps.BeginInvoke()
-                    $active[$id] = [pscustomobject]@{ Ps = $ps; Handle = $handle; Id = $id; ClaimedAt = $claimedAt; Claim = $claimRec; ClaimFile = $dest; Mark = $mark }
+                    $active[$id] = [pscustomobject]@{ Ps = $ps; Handle = $handle; Id = $id; ClaimedAt = $claimedAt; Claim = $null; ClaimFile = $dest; Mark = $mark }
                     Alog ('start ' + $id)
                 } catch { Alog ('start failed ' + $id + ': ' + $_.Exception.Message) }
             }

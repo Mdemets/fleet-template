@@ -1,4 +1,4 @@
-<#
+﻿<#
   fleet-monitor.ps1 - periodic health check that writes a status file and logs anomalies.
 
   Run on the coordinator every few minutes. It exists because this fleet's failures are
@@ -39,7 +39,7 @@ foreach ($hb in $hbs) {
 
 $queue = @(Get-ChildItem (Join-Path $Share 'queue') -File -Filter '*.json').Count
 $claimed = @(Get-ChildItem (Join-Path $Share 'claimed') -Recurse -File -Filter '*.json' | Where-Object { $_.Directory.Name -ne 'done' }).Count
-$locks = @(Get-ChildItem (Join-Path $Share 'locks') -File).Count
+$locks = @(Get-ChildItem (Join-Path $Share 'locks') -File | Where-Object { $_.LastWriteTime -lt (Get-Date).AddMinutes(-15) }).Count
 
 if ($locks -gt $LockLimit) { $anomalies += ('claim markers accumulating: ' + $locks) }
 if ($claimed -gt $ClaimLimit) { $anomalies += ('claims outstanding: ' + $claimed) }

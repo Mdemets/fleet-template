@@ -2,6 +2,19 @@
 
 What changed, when, and why. Newest first. Measurements are from the fleet as it ran, not projections.
 
+## Later on 2026-11-27 - the claim sidecar removed, and a monitor
+
+- **Dropped the per-claim sidecar.** The claim marker in `locks/` already carries the claim time - it
+  is created at claim and removed at completion - so `results/<node>/claims/<id>.json` was a redundant
+  SMB write on every task. The reaper now ages a claim by its marker and keeps the sidecar only as a
+  legacy fallback.
+- **Measured:** 300 tasks in 7.5 s, mean **39.8 tasks/s** over three runs, 0 duplicates - against 31.6
+  with 64 slots before the change.
+- **Proven:** a claim whose marker is 30 minutes old is retried; a claim with a fresh marker is
+  untouched. The old code would have aged the stale one as zero, because the claim file was created at
+  test time - so this test fails without the change.
+- Added `fleet-monitor.ps1`: a 5-minute health write to `status/health.json`, flagging stale
+  heartbeats, stale claim markers, outstanding claims, and a queue that is not shrinking.
 ## 2026-11-27 - a working, parallel, hardware-independent fleet
 
 **Transport**

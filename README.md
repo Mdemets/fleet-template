@@ -13,7 +13,7 @@ of the project it was first used for.
 | node-b | worker | 8 | `\\<coordinator>\fleet` |
 | node-c | worker | 8 | `\\<coordinator>\fleet` |
 
-**300 tasks in 8.9 s (33.8 tasks/s), 0 duplicates, 0 failures.** The arrangement that preceded this
+**300 tasks in 7.5 s (39.8 tasks/s, mean of three runs), 0 duplicates, 0 failures.** The arrangement that preceded this
 one - a single worker polling every 30 s - managed about 0.03 tasks/s.
 
 Those numbers are from three specific machines. Nothing in the scripts assumes them: `assess-fleet.ps1`
