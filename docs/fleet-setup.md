@@ -1,4 +1,4 @@
-# Fleet setup: reproducing the current arrangement
+﻿# Fleet setup: reproducing the current arrangement
 
 The working state as of 2026-11-27, and the steps that build it. Everything here is measured;
 measurements and the failures that produced them are in `parallel-workers-2026-11-27.md` and
@@ -71,6 +71,29 @@ first heartbeat. Runspaces share the agent's process and therefore its session.
 
 **Always check per-node distribution, not just "drained N/N".** During this work the coordinator
 covered for broken workers three times; a burst that only reports completion hid every failure.
+
+## Measurement traps
+
+Added 2026-11-27. Every row is a wrong conclusion that was acted on before it was caught, and the
+check that now catches it. A fleet that measures itself badly looks healthy while doing nothing.
+
+| Trap | What happened | Check |
+|---|---|---|
+| One page is not the population | A single `per_page=30` query reported 29 open issues. The repository held 450, and 577 upstream. Fleet capacity was then reasoned from the wrong number. | Count with `gh api --paginate`, and corroborate against `repos/<owner>/<repo>.open_issues_count`. |
+| Two clocks | The dashboard computed "finished in the last 15 min" as UTC-now against local file times. Local was UTC+1, so the window was 75 minutes: 117 reported, 0 real. | Subtract in one clock. This is the same root cause as the existing rule that claim age drives the reaper. |
+| Stale counters | `runningCount` counted claim files, archived ones included, and read 2 while `active` was 0. `active` itself lags heartbeats by seconds. | Name the field that means "working now", and derive it from claim age rather than file presence. |
+| Same path, different repository | `...\projects\victory` was `JMAN730/victory` at `820bc3b` on one station, `marvisak/victory` at `da82e44` on another, upstream `63bcca4`. | Every station reports `remote get-url origin` and `rev-parse HEAD`. A result carrying neither is not comparable. |
+| Existence is not ancestry | `git cat-file -e <sha>` succeeds for a commit merely present in the object store. Seventeen fixes were reported absent from a tree that could not have contained them, then reported present once the base commit advanced. | `cat-file -t` must be `commit`, then `merge-base --is-ancestor`. State the base commit beside the answer. |
+| Hash-shaped is not a commit | A regex over issue bodies matched a title binary's blake3 digest as a commit id. | Validate the object type before treating any hex token as a commit. |
+| Depth-limited search | `Get-ChildItem -Depth 4` reported `victory.exe` absent; it existed at depth 6 under `target\`. | Never conclude absence from a depth-limited or filtered search. |
+| Wrong machine | `gh auth login` reported the device connected, but the token was stored on the operator's workstation. The coordinator stayed at HTTP 401 through several retries. | Verify identity where it must be used: `gh api user --jq .login` on that host. |
+| Two credential paths | Authenticating `gh` did not fix `git push`: gh uses its own store, push used Git Credential Manager and failed with `could not read Username`. | After authenticating, run `gh auth setup-git` and prove it with `git push --dry-run`. |
+| Credential reachable by the fleet | The token file was readable by the account tasks run under (`NT AUTHORITY\SYSTEM FullControl`), so any queued task could act as the auditor. | The coordinator holds no credential. Reading public issue lists needs none. Outward actions run from the auditor's machine. |
+| Session-bound builds | A release build started in an SSH foreground died with the session and left no binary, while still appearing to have started. | Start long work detached (`Win32_Process.Create` or a scheduled task) and poll a log file. |
+| Account prerequisites | Running as the machine account, git refused with `dubious ownership` and cargo with `no default toolchain`. | Provision `safe.directory` for the repositories and `RUSTUP_HOME`/`CARGO_HOME` for that account, then prove both. |
+
+The general form: a number needs its clock, its commit, its population and its base. Any of the four
+missing produces a confident answer that is wrong, and nothing in the fleet raises an error.
 
 ## Failover
 
