@@ -1,4 +1,4 @@
-# AGENTS.md - rules for agents working in this repository
+﻿# AGENTS.md - rules for agents working in this repository
 
 This repository is worked by several agents across several machines. Read this
 before your first edit.
@@ -164,6 +164,17 @@ Implemented by `scripts/guard-stop.ps1` (`-Status` reports where it looked).
 
 Runtime approvals are a separate layer: when the application asks before privileged actions, that
 gate is authoritative and a STOP file is no substitute for answering it.
+
+### R9 - Publication authority
+
+The auditor publishes to the repositories named in `PUSH-POLICY.md` and to no other. The allowlist
+decides, not the credential: a token that can reach a repository does not make it eligible.
+Everything outside the list is produced as a bundle and left for a human.
+
+The original policy was local-only because no auditor existed to hold the judgement, following an
+incident where an agent pushed another owner's branch into a fork. Amended by the operator on
+2026-11-27 once the auditor was assigned: publishing gained a named owner and lost a blanket
+prohibition.
 
 ### Why these are written down
 

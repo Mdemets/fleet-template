@@ -1,4 +1,4 @@
-# Fleet operating rules
+﻿# Fleet operating rules
 
 Rules the human has set for how agents work on this fleet. They live here because this share is
 readable from every station; a rule that exists only in one workstation's chat log is not a rule.
@@ -103,7 +103,7 @@ non-zero rather than proceeding. The agent never creates or removes it; only the
 Evidence: there was no way to halt a running fleet without editing scripts or killing processes. This is
 the cheapest control that works without a UI: one file, checked everywhere that matters.
 
-## Publication authority
+## R9 - Publication authority
 
 **Rule.** The auditor publishes to the repositories named in `PUSH-POLICY.md` and to no other. The
 allowlist decides, not the credential: a token that can reach a repository does not make it
