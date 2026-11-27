@@ -1,3 +1,9 @@
+## 2026-11-27 (late) - the free dependency is stated, not assumed
+
+- `docs/fleet-setup.md`: records that the reasoning lane currently runs on DeepAI Code *because it is
+  free* - a present fact with an exit path, not a permanent assumption. If it stops being free, the
+  transport and workers are unaffected; only reasoning degrades.
+
 ## 2026-11-27 (late) - adding a reasoning station costs nothing
 
 - `docs/fleet-setup.md`: a free DeepAI account is the only requirement to give a new station a
