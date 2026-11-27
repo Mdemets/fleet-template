@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "note": "What a lane account may execute. Everything else is denied by AppLocker/WDAC. Keep it boring.",
+  "allowed": [
+    "cargo.exe",
+    "rustc.exe",
+    "rustfmt.exe",
+    "link.exe",
+    "pwsh.exe -NoProfile -File scripts/*.ps1",
+    "git.exe fetch|status|log|diff|bundle|worktree"
+  ],
+  "denied": [
+    "any installer or package manager",
+    "any service or scheduled-task creation",
+    "any driver or registry write",
+    "any command that is not in allowed"
+  ],
+  "runner": {
+    "note": "The test runner accepts only these, from the queue, with a hard timeout.",
+    "commands": ["cargo test", "cargo test --no-run"],
+    "timeoutSecondsDefault": 900
+  }
+}

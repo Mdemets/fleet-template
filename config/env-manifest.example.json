@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "image": "fleet-station-2026-11",
+  "pinned": {
+    "osBuild": "10.0.26200",
+    "gpuDriver": "596.71",
+    "rustToolchain": "1.100.0",
+    "vsBuildTools": "14.44.35207",
+    "windowsSdk": "10.0.26100",
+    "dxilDllSha256": "<sha256>",
+    "vendorDirSha256": "<sha256>"
+  },
+  "requiredEnv": {
+    "FLEET_CHANNEL": "path to the shared channel folder, outside the repository",
+    "FLEET_STATION": "this machine's name",
+    "FLEET_ROLE": "coordinator | station | lane | runner"
+  },
+  "checks": [
+    "toolchain matches rust-toolchain.toml",
+    "dxil.dll present and hash matches",
+    "vendor dir hash matches (offline builds possible)",
+    "gpu visible; WARP available",
+    "channel path readable and writable only where the role allows"
+  ]
+}

@@ -1,0 +1,9 @@
+# build output
+target/
+target-*/
+# local channel and scratch
+channel/
+outbox/
+*.log
+# environment drift artefacts
+env-manifest.local.json

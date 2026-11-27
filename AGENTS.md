@@ -1,0 +1,144 @@
+# AGENTS.md - rules for agents working in this repository
+
+This repository is worked by several agents across several machines. Read this
+before your first edit.
+
+## Scope
+
+This repository is the fleet's environment setup - transport, workers, failover, audits, rules - and
+deliberately contains nothing project-specific. Investigations, issue analysis and title findings live
+with the project or in the coordinator's findings directory, never here. A project document added here
+is a scope error. Lessons from a project run do belong: they are about method, and will name the project they came from.
+
+## Your lane
+
+- Work only in the worktree you were given, on the branch you were given.
+- Never commit to the branch of record. Never push. Handoffs are bundles.
+- One deliverable. If the brief is too broad to finish, say so before starting.
+
+## The bar for "done"
+
+- The change compiles: the repo's compile gate passes.
+- The tests you added or changed pass on every backend the harness offers - and if
+  a backend genuinely cannot run them, the skip is counted and an all-skipped run
+  fails.
+- One mutation you can name makes a test go red; you restored it and the tree is
+  clean.
+- Gates: format, lint, policy, your filter, one full run.
+- You committed. A partial batch with named failures beats an empty branch; if the
+  task cannot be done, commit a patch plus a note saying exactly where it broke.
+
+## Reporting
+
+Every report carries: commit hash, hardware adapter, driver version, toolchain,
+wall time, exit code, pass/fail/ignored counts, and whether another test binary was
+alive when you started.
+
+A number without its commit is not a result.
+
+## Never
+
+- No pushing, no pull requests, no remote branches, no alternative account.
+- No game/title/runtime captures, no dumps, no driver or OS changes.
+- No installing anything; request it instead (see docs/fleet-playbook.md 10.9).
+- No editing another lane's worktree, the channel, or files outside your worktree.
+- No weakening a test to make a board green. Report the failure.
+
+## Operating rules (adopted from the three-node lab, 2026-11-27)
+
+Two rules the human set after they were broken in the lab. They are not stylistic; each one exists
+because its absence lost work or caused unexplained drift.
+
+### R1 - The coordinator owns the project files
+
+No agent other than the coordinator writes into a project repository - no commit, merge, rebase,
+reset or file edit. Changes are **suggested** to the coordinator in its share under `proposals/`.
+
+A proposal names: what changes, why, which files, the evidence that it works, the risk, and how to
+revert. Status is `proposed`, `accepted` or `rejected`; an accepted proposal records the resulting
+commit ids, so the decision stays traceable. A proposal that cannot name its evidence is not ready.
+
+Allowed without a proposal: read-only inspection, bundling (adds no repository content), records in
+the coordinator's share, and documentation outside the project repositories.
+
+This sits alongside, not instead of, this file's own lane rules: a lane still commits only in its
+own worktree and still never pushes.
+
+### R2 - Instruction updates are handled sequentially
+
+Prompts from the user - on any workstation, in any session - are processed **in the order
+received**. New input does not dismiss a previous request.
+
+- Additional input while a request is in progress **queues behind it**; it is not a replacement.
+- An earlier request is not abandoned, folded away or silently reinterpreted because a newer
+  message arrived.
+- Only an explicit cancellation - "nevermind", "drop that", "stop" - removes a request.
+- A contradiction between a later and an earlier instruction is **reported**, with the earlier one
+  completed or explicitly parked first. Never resolved silently.
+- With more than one request outstanding, each result states which request it answers.
+
+### R3 - Every rule and behaviour change reaches this repository
+
+Any newly adopted rule, or any change to working behaviour, is written here **in the same pass it
+is adopted**: the rule as an agent must read it in this file, the reasoning and history in
+`docs/rules.md`.
+
+- The running fleet's `RULES.md` and this file must not diverge. A rule present in only one of them
+  is not adopted, it is proposed.
+- Amend, don't append-only: when a rule changes, correct the old text in both places and record the
+  correction.
+- An agent may draft a rule; only the human adopts one - the same as accepted risks.
+
+This repository is the part of a fleet that survives it. A rule learned in a run and not written
+here is learned once and lost.
+
+### R6 - Falsify before explaining
+
+Before writing a fix, or reporting a cause, state the observation that would **disprove** it - and
+obtain that observation first. A theory that has not been attacked is not ready to be written down.
+
+- For a code change: name the test that fails without it, run that test against the old behaviour,
+  and watch it go red before claiming it works.
+- For a diagnosis: name the measurement that would contradict it, and take it before writing prose.
+- A report that cannot say what would falsify it is a description, not a finding.
+
+### R7 - Ask the question that separates two live hypotheses
+
+When two explanations are both plausible, do not run more experiments that merely confirm either one.
+Design the single observation whose outcome differs between them, and take that.
+
+- Prefer one discriminating test over three confirming runs.
+- Record both hypotheses and the expected outcome of each before the run, so the result is a decision
+  rather than something to interpret afterwards.
+- If no test can separate them, say so; that is a reason to instrument, not to keep reasoning.
+
+R6 and R7 come from the 2026-11-27 session: a claimed `?`-operator bug survived review and was written
+into a proposal, then died in one mutation test; and hours went to a fallback-descriptor theory that a
+single per-draw run killed, because the question asked was "is it still black" rather than "do the
+draws write here or elsewhere".
+
+### Why these are written down
+
+R1 followed four merges applied to a working line without asking; the coordinator could see the
+files change and had no way to know why. R2 follows sessions where a later message absorbed an
+unfinished earlier one, which loses work quietly and leaves no trace afterwards.
+
+## Traps this fleet has already paid for
+
+Each of these cost real time on 2026-11-27. Full evidence: `docs/lessons-2026-11-27.md`.
+
+- **Validate config with its own parser before restarting a service.** A directive appended to the end
+  of `sshd_config` landed inside a `Match` block and stopped sshd from loading at all.
+- **Verify the artifact, not the attempt.** A script that aborted at step 2 never ran step 5; a later
+  check reported the file existed, not what it contained.
+- **Rotating a credential file does not rotate a running process.** Stop the service and kill the
+  process, or the old password keeps retrying and locks the account.
+- **Fail fast on auth errors, cool down on the rest.** Retries convert one bad password into a lockout.
+- **Never claim a fix without watching the test go red.** A test that passes with the bug restored
+  certifies a false explanation.
+- **Absence is unknown, not health.** An idle queue is not an idle fleet; a missing file is not a missing
+  producer - read the code before asserting one.
+- **Convert symptoms into files.** A captured frame with `RGB(0,0,0)` outlives any description of a black
+  screen.
+- **Name the recovery path before a reboot** (R4, drafted) and **copy bundles off the machine in the
+  same pass** (R5, drafted).
