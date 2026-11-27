@@ -93,3 +93,12 @@ R7 - Ask the question that separates two live hypotheses: one discriminating tes
 Both are the two practices from docs/thinking-protocol.md that paid for themselves in the session that
 produced them. P3-P8 (predict then measure, prior art first, artefacts over descriptions, hypothesis ledger,
 timebox a theory without evidence, mark belief versus measurement) remain advisory until adopted.
+
+## R8 - A STOP file halts fleet automation - adopted 2026-11-27
+
+The operator stops automation by creating a file: STOP beside the script, in C:\fleet, in the worker
+directory, or in D:\fleet (the coordinator share). Any state-changing action checks it first and exits
+non-zero rather than proceeding. The agent never creates or removes it; only the operator resumes.
+
+Evidence: there was no way to halt a running fleet without editing scripts or killing processes. This is
+the cheapest control that works without a UI: one file, checked everywhere that matters.

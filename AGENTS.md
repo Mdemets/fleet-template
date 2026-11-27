@@ -147,6 +147,24 @@ into a proposal, then died in one mutation test; and hours went to a fallback-de
 single per-draw run killed, because the question asked was "is it still black" rather than "do the
 draws write here or elsewhere".
 
+### R8 - A STOP file halts fleet automation
+
+The operator stops the fleet's automation by creating a file. That is the switch: it needs no UI, no
+session and no permission to be granted in advance.
+
+- Checked before any state-changing action: starting or restarting an agent, seeding or clearing
+  tasks, changing a share, a task or a credential, and any restart.
+- Paths, first match wins: `STOP` beside the script, `C:\fleet\STOP`, `%USERPROFILE%\fleet\STOP`,
+  `D:\fleet\STOP` (the coordinator share, so one file halts the whole fleet).
+- A script that finds it exits non-zero and reports; it never proceeds and never silently skips.
+- The file belongs to the operator. An agent does not create it, and does not delete it to resume:
+  only the operator removes the stop.
+
+Implemented by `scripts/guard-stop.ps1` (`-Status` reports where it looked).
+
+Runtime approvals are a separate layer: when the application asks before privileged actions, that
+gate is authoritative and a STOP file is no substitute for answering it.
+
 ### Why these are written down
 
 R1 followed four merges applied to a working line without asking; the coordinator could see the

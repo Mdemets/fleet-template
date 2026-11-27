@@ -63,6 +63,7 @@ signal that catches it.
 | R5 | A bundle is durable only off the machine that made it |
 | R6 | Falsify before explaining: obtain the disproof before writing a cause or a fix |
 | R7 | Ask the question that separates two live hypotheses instead of running more confirming tests |
+| R8 | A STOP file halts fleet automation; the operator owns it |
 
 R4 and R5 guard against rare but expensive events: a restart with no way back, and a bundle that only
 exists on the machine that made it. `AGENTS.md` is the full text; R6 and R7
