@@ -1,3 +1,9 @@
+## 2026-11-27 (late) - lessons from building the monitor
+
+- `docs/lessons-2026-11-27-night.md`: the head-of-line deadlock caused by 46 stale claim markers, the
+  watcher that prevents it, the 99.9% no-op discovery, the dashboard's own 20-second scan, the three
+  incomparable numbers, role-based eligibility, and provisioning as staging rather than purchase.
+
 ## 2026-11-27 - pushing to other people's projects, in plain language
 
 - `PUSH-POLICY.md` rewritten without jargon: copies are allowed, change requests are questions, and a
