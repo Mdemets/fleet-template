@@ -1,3 +1,9 @@
+## 2026-11-27 (late) - free tier means lowest priority, not an outage
+
+- `docs/fleet-setup.md`: records that a free account is served behind paid traffic - a latency
+  property, not availability - and what follows from it: asynchronous calls, generous timeouts, never
+  on an interactive path. No downtime in this run was attributable to the provider.
+
 ## 2026-11-27 (late) - two reboots, one of them a hang
 
 - `docs/lessons-2026-11-27-night.md`: mdma had a hang-and-reboot (boot 11-26 10:04) alongside the

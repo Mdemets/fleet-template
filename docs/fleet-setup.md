@@ -77,6 +77,14 @@ first heartbeat. Runspaces share the agent's process and therefore its session.
    3773. A station without it can only run deterministic scripts; one with it can be given prompts.
    Record the version in the environment manifest, like every other pinned component.
 
+   **Free means lowest priority, and the design has to absorb that.** A free account is served behind
+   paid traffic, so a reasoning call can queue before it runs. That is a latency property, not an
+   availability one - nothing was refused in this run - and it changes how the lane should be used:
+   fire-and-forget with generous timeouts, never in an interactive path, and never as the thing a
+   supervisor waits on. Measured over the run: no downtime attributable to the provider; the outages
+   that did occur were ours (a claim-marker deadlock) or a quota we spent (60 unauthenticated GitHub
+   requests per hour), both recorded in `lessons-2026-11-27-night.md`.
+
    **What the fleet currently runs on: DeepAI Code, because it is free.** Recorded as a present fact,
    not a permanent assumption. A free account per station is the whole cost today; if that ever
    changes, the transport, queue, workers and results are unaffected - only the reasoning lane drops
