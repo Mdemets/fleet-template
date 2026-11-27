@@ -18,7 +18,22 @@ to a decision.
 | deepai/qwen-3.8-flash | encoding-level coverage audit, harness-lifetime read, MIMG store verification, LLVM AMDGPU encoding diff, buffer-format / SOP1-SOP2 / image remainder batches | the coverage table the whole plan was built on, the MUBUF verdict, the null result that our GFX10 tables agree with LLVM, and several test batches |
 | deepai/claude-haiku-5-5 | independent verification of the first SOP1 batch | mutations that both went red, and the s_not_b64 low-half hole that the author could not see |
 
+## DeepAI Code
+
+DeepAI Code is the reasoning runtime this fleet was built and run on, and it is credited here for a
+reason that matters as much as the models: **it is free.** A free account per station, install, sign
+in once - no key, no licence per seat. That is what made it practical to give three machines a
+reasoning lane at all, and to keep the fleet's expensive parts optional by design.
+
+It also supplies the models named above (`deepseek-v4.1-flash` as coordinator, `gpt-6-luna`,
+`qwen-3.8-flash`, `claude-haiku-5-5` as independent lanes), and its bundled agent SDK is what allowed
+verification by a second model rather than by the author of the work.
+
+Recorded as a current dependency rather than a permanent one: if DeepAI Code stops being free, the
+queue, the workers and the results are untouched, and only the reasoning lane changes.
+
 ## Peer stations
+
 
 These ran their own app instances on other machines. Their model identifiers were
 not recorded in the channel, so they are credited by station and contribution -

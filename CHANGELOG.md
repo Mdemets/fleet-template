@@ -1,3 +1,9 @@
+## 2026-11-27 (late) - DeepAI Code credited as the free reasoning runtime
+
+- `CREDITS.md`: a section crediting DeepAI Code - the free runtime the fleet's reasoning lane runs on,
+  and the source of the models named above. Recorded as a current dependency with an exit path.
+- `docs/fleet-setup.md`: the same statement where station setup is described.
+
 ## 2026-11-27 (late) - the free dependency is stated, not assumed
 
 - `docs/fleet-setup.md`: records that the reasoning lane currently runs on DeepAI Code *because it is

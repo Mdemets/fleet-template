@@ -77,6 +77,12 @@ first heartbeat. Runspaces share the agent's process and therefore its session.
    3773. A station without it can only run deterministic scripts; one with it can be given prompts.
    Record the version in the environment manifest, like every other pinned component.
 
+   **What the fleet currently runs on: DeepAI Code, because it is free.** Recorded as a present fact,
+   not a permanent assumption. A free account per station is the whole cost today; if that ever
+   changes, the transport, queue, workers and results are unaffected - only the reasoning lane drops
+   back to evidence-gathering. The paid parts encountered here were all optional, which is what makes
+   the dependency one sentence long instead of an architecture.
+
    **Consent, not installation, is the usual blocker.** `/mcp` answers `401` until the app's OAuth
    consent is granted once per station (`authorization_code` + PKCE; dynamic registration succeeds,
    the authorize endpoint returns a consent page). An app that is installed, running and signed in
