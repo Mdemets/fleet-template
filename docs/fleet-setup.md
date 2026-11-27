@@ -68,7 +68,19 @@ first heartbeat. Runspaces share the agent's process and therefore its session.
    on `locks/`.
 4. **Same password on the same account name across coordinators**, so a failover needs no rotation.
    Misalignment fails auth with System error 86 and, through retries, locks the account.
-5. **WMI healthy**: `Get-NetIPAddress` and `Get-NetTCPConnection` must answer. If they fail with
+5. **DeepAI Code installed, same version on every station, signed in once as the station user.**
+   It is the reasoning runtime: the app serves a local MCP endpoint at
+   `http://127.0.0.1:3773/mcp`, and that endpoint - not the bundled `claude.exe`, which is the paid
+   SDK - is the zero-cost path. Verify with `DeepAI Code.exe --version` and by the app answering on
+   3773. A station without it can only run deterministic scripts; one with it can be given prompts.
+   Record the version in the environment manifest, like every other pinned component.
+
+   **Consent, not installation, is the usual blocker.** `/mcp` answers `401` until the app's OAuth
+   consent is granted once per station (`authorization_code` + PKCE; dynamic registration succeeds,
+   the authorize endpoint returns a consent page). An app that is installed, running and signed in
+   can still refuse every headless call - so test the endpoint, not the presence of the binary.
+
+6. **WMI healthy**: `Get-NetIPAddress` and `Get-NetTCPConnection` must answer. If they fail with
    `Invalid class`, recompile the provider: `mofcomp %windir%\System32\wbem\NetTCPIP.mof`. A reboot
    does not fix it; the repository is consistent, only the class registrations are missing.
 

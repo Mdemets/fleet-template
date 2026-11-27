@@ -1,3 +1,10 @@
+## 2026-11-27 (late) - DeepAI Code is part of station provisioning
+
+- `docs/fleet-setup.md`: new prerequisite - DeepAI Code on every station at one pinned version, signed
+  in, with `127.0.0.1:3773/mcp` answering. Notes that the bundled `claude.exe` is the paid SDK and that
+  the usual blocker is OAuth consent (`401`), not the install.
+- `docs/fleet-playbook.md` 11.1: the golden image for a station now includes it.
+
 ## 2026-11-27 (late) - lessons from building the monitor
 
 - `docs/lessons-2026-11-27-night.md`: the head-of-line deadlock caused by 46 stale claim markers, the
