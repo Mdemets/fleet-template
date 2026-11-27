@@ -1,3 +1,12 @@
+## 2026-11-27 - pushing to other people's projects, in plain language
+
+- `PUSH-POLICY.md` rewritten without jargon: copies are allowed, change requests are questions, and a
+  request may go to `JMAN730/project-flamingo` or `Marvisak/VIctory` only when it is a proven fix and
+  the operator approves that one request.
+- The five-part test for "actual fix": reproduces, stops the problem, breaks nothing, explained, one
+  problem per request. Anything short of it is a comment, not a request.
+- `docs/rules.md` and `AGENTS.md` record the same rule in the same pass (R3).
+
 ﻿## 2026-11-27 - monitoring, task creation, measured throughput
 
 - docs/monitoring.md - the four fleet figures, the four ways they lie (unit, window, clock, cache),

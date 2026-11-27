@@ -129,3 +129,15 @@ eligible. Everything outside the list is produced as a bundle and left for the h
 following an incident where an agent pushed another owner's branch into a fork. Amended by the
 operator on 2026-11-27 once the auditor was assigned, at which point publishing gained a named
 owner and lost a blanket prohibition.
+
+## R9 amendment - 2026-11-27: requesting a change to a project we do not own
+
+**Rule.** A change may be offered to `JMAN730/project-flamingo` or `Marvisak/VIctory` only when it is a
+proven fix - reproduces, stops the problem, does not break other things, explained, one problem per
+request - and only after the operator approves that specific request. One at a time. Observations
+that are not fixes go out as comments, never as change requests.
+
+**History.** The earlier policy forbade even keeping a copy of another owner's project, because it was
+written in response to an agent pushing 147 commits into someone else's repository uninvited. That
+overshoot made legitimate contribution impossible. The operator's actual instruction was not to
+interfere, and a request for review is not interference: it changes nothing unless accepted.

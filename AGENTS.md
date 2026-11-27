@@ -180,6 +180,13 @@ incident where an agent pushed another owner's branch into a fork. Amended by th
 2026-11-27 once the auditor was assigned: publishing gained a named owner and lost a blanket
 prohibition.
 
+### R9a - Requesting a change to a project we do not own
+
+A change may be offered to `JMAN730/project-flamingo` or `Marvisak/VIctory` only when it is a proven
+fix - it reproduces, it stops the problem, it does not break other things, it is explained, and it is
+one problem per request - and only after the operator approves that specific request, one at a time.
+Anything short of that is an observation: post it as a comment, never as a change request.
+
 ### Why these are written down
 
 R1 followed four merges applied to a working line without asking; the coordinator could see the
