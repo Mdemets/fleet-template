@@ -111,6 +111,10 @@ fleet works on.
 
 ## Credits
 
+docs/provenance.md records where the work came from and what it owes the two upstream projects that
+made it necessary.
+
+
 See `CREDITS.md` - the operator, the agent, the stations and their hardware, and which design each
 failed attempt eliminated.
 
