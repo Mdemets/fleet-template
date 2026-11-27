@@ -68,6 +68,11 @@ amendment recorded below.
 recovery path (console, a second admin channel, or someone physically present), ask the operator
 before restarting.
 
+**Scope.** Stations only - a machine whose boot may not return, where a failed start costs a
+human trip. It does not cover the fleet's own services (dashboard, feeder, reaper), the agent,
+or the queue: those have a recovery path by construction - the task starts again locally in a
+second - and refusing to restart them converts a trivial repair into an outage.
+
 **Amendment at adoption:** the draft said a restart without out-of-band access "is a physical
 intervention, so the decision belongs to the operator" - which reads as a blanket prohibition. The
 adopted form permits the restart when the recovery path is named and the operator agrees, because the
