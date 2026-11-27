@@ -107,3 +107,16 @@ it is the machine continuing, cheerfully, while doing nothing.
 What the 100 hours did buy: proof that the transport survives restarts, SMB sessions dying, agents
 being killed and restarted, one station having no source tree, and a credential moving off the box.
 That is not nothing. It is just not throughput.
+
+## 10. A coordinator reboot, and what it proved
+
+The coordinator was rebooted during this run (boot 2026-11-27 15:24). The share it hosts came back,
+the two workers reconnected their SMB sessions on their own, the reaper and monitor resumed on their
+schedules, and no human had to re-join anything. Its own artefacts date from that reboot - the node
+directories at 16:13, the agent log from 16:48 - which is exactly how a restart should look: a clean
+seam, not a discontinuity.
+
+It also explains the fleet's age arithmetic. Three machines with staggered boots add up to ~100
+station-hours (51.8 + 38.8 + 9.5), while the continuous three-station window is only about 9.5 hours.
+Both are true; quoting either as 'the fleet has run 100 hours' would be a category error. When
+reporting age, say which clock.

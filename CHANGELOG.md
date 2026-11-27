@@ -1,3 +1,9 @@
+## 2026-11-27 (late) - the coordinator rebooted and the fleet did not notice
+
+- `docs/lessons-2026-11-27-night.md`: records the coordinator reboot (boot 15:24), the clean recovery of
+  share, workers and schedules, and the age arithmetic - ~100 station-hours versus a ~9.5-hour continuous
+  window. Quote which clock.
+
 ## 2026-11-27 (late) - the 100-hour milestone, measured honestly
 
 - `docs/lessons-2026-11-27-night.md`: uptime ~100 h against ~30 useful tasks out of 38,000 executed.
