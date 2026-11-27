@@ -85,3 +85,25 @@ nobody would attempt into one that takes seconds.
 
 The honest headline is completions per minute **plus** a failure count. Without the second number,
 38,000 completions and 38,000 no-ops look identical.
+
+## 9. One hundred hours of uptime, and what it was worth
+
+The fleet has now been up close to 100 hours: three agents, a reaper, a monitor, a dashboard and a
+watchdog, with no crash that needed a human to walk over and press something. Measured against that:
+
+| | |
+|---|---|
+| uptime | ~100 h, no unplanned agent death |
+| tasks executed | 38,000+ |
+| tasks that did something | ~30 |
+| longest silent stall | 35 min (the stale-marker deadlock) |
+| humans required | 0 |
+
+The honest reading: **uptime is the least interesting number the fleet produces.** A fleet that is up
+100 hours and useful for 30 seconds of them is a control-plane success and a payload failure. Both
+facts belong in the record, because the failure mode that matters here is not the machine stopping -
+it is the machine continuing, cheerfully, while doing nothing.
+
+What the 100 hours did buy: proof that the transport survives restarts, SMB sessions dying, agents
+being killed and restarted, one station having no source tree, and a credential moving off the box.
+That is not nothing. It is just not throughput.

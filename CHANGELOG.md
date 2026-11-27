@@ -1,3 +1,9 @@
+## 2026-11-27 (late) - the 100-hour milestone, measured honestly
+
+- `docs/lessons-2026-11-27-night.md`: uptime ~100 h against ~30 useful tasks out of 38,000 executed.
+  The point recorded is that uptime is the least interesting number a fleet produces; the failure mode
+  that matters is continuing cheerfully while doing nothing.
+
 ## 2026-11-27 (late) - credit where it is due
 
 - `CREDITS.md`: DeepAI Code credited for offering an awesome tool, in the operator's words - the piece
