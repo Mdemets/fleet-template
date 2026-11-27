@@ -102,3 +102,14 @@ non-zero rather than proceeding. The agent never creates or removes it; only the
 
 Evidence: there was no way to halt a running fleet without editing scripts or killing processes. This is
 the cheapest control that works without a UI: one file, checked everywhere that matters.
+
+## Publication authority
+
+**Rule.** The auditor publishes to the repositories named in `PUSH-POLICY.md` and to no other. The
+allowlist decides, not the credential: a token that can reach a repository does not make it
+eligible. Everything outside the list is produced as a bundle and left for the human.
+
+**History.** The original policy was local-only because no auditor existed to hold the judgement,
+following an incident where an agent pushed another owner's branch into a fork. Amended by the
+operator on 2026-11-27 once the auditor was assigned, at which point publishing gained a named
+owner and lost a blanket prohibition.

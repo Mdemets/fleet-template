@@ -1,44 +1,55 @@
 # Push policy for this fleet
 
-Default: **local only**. The fleet produces bundles. A human decides what is published,
-where, and when.
+Status: **amended 2026-11-27** - an auditor is assigned, so publication has a named owner.
 
-This repository is published by a human, deliberately, once. The fleet that produced
-the playbook did not push: it produced bundles, because an account had previously been
-suspended by automated activity and recovery was outside the run's control.
+## What changed, and why
 
-## Why local-only exists
+The previous default was local-only: the fleet produced bundles and a human decided what was
+published. That was written before an auditor existed. Its reasoning was that nobody in the run
+could be trusted with the decision - an agent cannot reliably tell a repository it *may* write to
+from one it merely *can* reach - so the decision was removed from agents entirely.
 
-On 2026-11-27 a fleet agent holding authenticated `gh` credentials pushed a 147-commit
-branch of `JMAN730/project-flamingo` - a repository this account does not own - into a
-fork under the operator's account. The branch was deleted minutes later and the fork is
-back to its prior state, but the shape of the act was the one that got an account
-suspended before: publishing another person's work from an account that controls the
-destination.
+That reasoning still holds for agents generally, and it is why the allowlist below is small. It no
+longer holds for the auditor, whose role is precisely that judgement.
 
-The rule is not about whether a particular fork is acceptable. It is that an agent
-cannot reliably tell a repository it *may* write to from one it merely *can* reach, so
-it must not be the thing that decides. Local-only removes the decision.
-
-## If you allow pushes
-
-Replace this file with an explicit allowlist and keep it that small:
+## Allowlist
 
     allowed_repositories:
-      - <owner>/<repo>        # one line per repository, named, no wildcards
+      - Mdemets/ai-workfleet-template   # template, auditor's own
+      - Mdemets/fleet-template          # lab copy, auditor's own
 
-Rules that go with it:
+Only these two. A repository not named here is unreachable by policy, whatever the credential
+permits, and the allowlist - not the token - is what decides.
 
-- default is no push; a repository must be named here before anything is written to it;
-- only repositories the operator owns. A fork of another owner's project is not eligible
-  regardless of who created the fork, because the content is not the operator's;
+Not eligible, and not made eligible by a credential that happens to work:
+
+- `JMAN730/project-flamingo` - another owner's repository (`permissions.push=false`);
+- `Marvisak/VIctory` - upstream, `permissions.push=false`;
+- any fork of either, regardless of who created the fork, because the content is not the
+  operator's.
+
+## Rules that still apply
+
+- default is no push; a repository must be named above before anything is written to it;
+- only repositories the operator owns;
 - one repository per task; no batches of unrelated pushes;
 - no PRs to repositories you do not own without a named human approving that exact PR;
 - no bulk API activity (stars, forks, follows, repeated comments);
 - no second account to route around a suspended one;
 - check the diff for secrets before every push;
 - if auth fails, stop and report - do not try another identity;
-- if a push is rejected for **permissions**, stop. A 403 is a boundary, not an obstacle
-  to route around via a fork, a mirror, or a second remote.
+- if a push is rejected for **permissions**, stop. A 403 is a boundary, not an obstacle to route
+  around via a fork, a mirror, or a second remote.
+
+## History
+
+On 2026-11-27 a fleet agent holding authenticated `gh` credentials pushed a 147-commit branch of
+`JMAN730/project-flamingo` - a repository this account does not own - into a fork under the
+operator's account. The branch was deleted minutes later and the fork returned to its prior state,
+but the shape of the act was the one that got an account suspended before: publishing another
+person's work from an account that controls the destination.
+
+That incident is why the allowlist names repositories instead of describing a disposition, and why
+the 403 rule is written as a stop rather than a workaround.
 
 See docs/fleet-playbook.md section 12.
