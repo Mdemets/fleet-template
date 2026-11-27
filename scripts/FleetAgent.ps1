@@ -57,6 +57,11 @@ function Complete-Task($key) {
         if ($j.Claim) { Remove-Item -LiteralPath $j.Claim -Force -ErrorAction SilentlyContinue }
         Remove-Item -LiteralPath $j.ClaimFile -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $j.Mark -Force -ErrorAction SilentlyContinue
+        # completion must be as visible as the start: a log of only beginnings cannot answer
+        # whether work succeeded, which is the question a fleet log exists to answer
+        $durMs = 0
+        try { $durMs = [int]((Get-Date).ToUniversalTime() - [datetime]::Parse($j.ClaimedAt).ToUniversalTime()).TotalMilliseconds } catch { }
+        Alog ('finish ' + $j.Id + ' exit=' + $res.exitCode + ' ' + $durMs + 'ms' + $(if ($timedOut) { ' TIMEOUT' } else { '' }))
     } catch { Alog ('complete failed ' + $j.Id + ': ' + $_.Exception.Message) }
 }
 

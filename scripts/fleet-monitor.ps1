@@ -1,4 +1,4 @@
-﻿<#
+<#
   fleet-monitor.ps1 - periodic health check that writes a status file and logs anomalies.
 
   Run on the coordinator every few minutes. It exists because this fleet's failures are
@@ -50,10 +50,34 @@ if ($queue -gt 0) {
     if ($recent -eq 0) { $anomalies += ('queue stalled: ' + $queue + ' waiting, no result in 5 min') }
 }
 
+# Per-node activity, derived from results (authoritative, unlike log line counts):
+# what finished recently, how long it took, and whether anything failed.
+$activity = [ordered]@{}
+foreach ($nodeName in @($nodes.Keys)) {
+    $res = @(Get-ChildItem (Join-Path $Share 'results') -Recurse -File -Filter 'result-*.json' | Where-Object { $_.Directory.Parent.Name -eq $nodeName -or $_.Directory.Name -eq $nodeName })
+    $recent = @($res | Where-Object { $_.LastWriteTime -gt (Get-Date).AddMinutes(-15) })
+    $durations = @()
+    $fails = 0
+    foreach ($rf in $recent) {
+        try {
+            $j = Get-Content $rf.FullName -Raw | ConvertFrom-Json
+            if ($j.claimedAt -and $j.finishedAt) {
+                $d = ([datetime]::Parse($j.finishedAt).ToUniversalTime() - [datetime]::Parse($j.claimedAt).ToUniversalTime()).TotalMilliseconds
+                if ($d -ge 0) { $durations += [int]$d }
+            }
+            if ($j.exitCode -ne 0) { $fails++ }
+        } catch { }
+    }
+    $median = 0
+    if ($durations.Count) { $median = ($durations | Sort-Object)[[int]($durations.Count / 2)] }
+    $activity[$nodeName] = [ordered]@{ finishedLast15Min = $recent.Count; medianMs = $median; failures = $fails }
+}
+
 $status = [ordered]@{
     ts = (Get-Date).ToUniversalTime().ToString('o')
     queue = $queue; claimed = $claimed; locks = $locks
     nodes = $nodes
+    activity = $activity
     anomalies = $anomalies
     healthy = ($anomalies.Count -eq 0)
 }
