@@ -3,7 +3,7 @@
   Reports only what the artefacts support; names the gaps instead of estimating them.
 #>
 [CmdletBinding()]
-param([string] $Share = 'D:\fleet', [int] $EffectiveWorkers = 2)
+param([string] $Share = (Join-Path $env:SystemDrive 'fleet'), [int] $EffectiveWorkers = 2)
 $ErrorActionPreference = 'Continue'
 
 $res = @(Get-ChildItem (Join-Path $Share 'results') -Recurse -File -Filter 'result-*.json' -ErrorAction SilentlyContinue)

@@ -18,7 +18,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory)][ValidateSet('coordinator','worker')][string] $Role,
-  [string] $SharePath = 'D:\fleet',
+  [string] $SharePath = (Join-Path $env:SystemDrive 'fleet'),
   [string[]] $Accounts = @(),
   [string] $CoordinatorUnc,
   [string] $Node,
@@ -78,7 +78,7 @@ if ($Role -eq 'coordinator') {
 if (-not $Node) { throw '-Node is required for a worker' }
 if (-not $CoordinatorUnc) { throw '-CoordinatorUnc is required for a worker' }
 $CoordinatorUnc = Normalize-Unc $CoordinatorUnc
-$wdir = if (Test-Path 'C:\fleet\node.txt') { 'C:\fleet' } else { 'C:\Users\' + $env:USERNAME + '\fleet' }
+$wdir = if (Test-Path (Join-Path $env:SystemDrive 'fleet\node.txt')) { 'C:\fleet' } else { 'C:\Users\' + $env:USERNAME + '\fleet' }
 New-Item -ItemType Directory -Force -Path $wdir,(Join-Path $wdir 'logs') | Out-Null
 
 Say 'identity files'
