@@ -101,6 +101,10 @@ intervention, not a maintenance action:
 - Name the recovery path in the same breath as the intent: console access, a second admin channel, or
   someone physically present.
 - Without a recovery path, ask the operator before restarting. Do not restart and hope.
+- Scope: stations only. Fleet services this fleet owns (dashboard, feeder, reaper), the
+  agent and the queue are not stations - restart or drain them as needed, naming the recovery
+  path above. The failure R4 was written after cannot happen to a scheduled task that returns in
+  one second.
 - A station that is the coordinator deserves the strictest reading: if it does not return, the queue
   goes with it.
 

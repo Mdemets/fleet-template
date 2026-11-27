@@ -3,6 +3,17 @@
 Rules the human has set for how agents work on this fleet. They live here because this share is
 readable from every station; a rule that exists only in one workstation's chat log is not a rule.
 
+## How to read these rules
+
+Every rule states its scope in its first sentence and its reasoning in the paragraphs that
+follow. The reasoning is part of the rule: it resolves ambiguity and it bounds the scope. A rule
+written for stations does not govern fleet services, the agent, or the queue. Applying a rule
+outside the scope it names is a misreading, not caution - and caution is no defence, because it
+produces the same refusal either way.
+
+The test is one question: what failure was this rule written after, and can that failure happen
+here? If it cannot, the rule does not apply.
+
 ## R1 - The coordinator owns the project files
 
 Set 2026-11-27. Changes to a local project repository are **suggested** to the coordinator, never
