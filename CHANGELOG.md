@@ -1,3 +1,9 @@
+## 2026-11-27 (late) - two reboots, one of them a hang
+
+- `docs/lessons-2026-11-27-night.md`: mdma had a hang-and-reboot (boot 11-26 10:04) alongside the
+  coordinator's planned restart. Both recovered unattended; the distinction matters, because a hang
+  leaves no log line and points at the GPU stack or memory pressure rather than the fleet software.
+
 ## 2026-11-27 (late) - the coordinator rebooted and the fleet did not notice
 
 - `docs/lessons-2026-11-27-night.md`: records the coordinator reboot (boot 15:24), the clean recovery of

@@ -116,6 +116,17 @@ schedules, and no human had to re-join anything. Its own artefacts date from tha
 directories at 16:13, the agent log from 16:48 - which is exactly how a restart should look: a clean
 seam, not a discontinuity.
 
+mdma had a hang-and-reboot of its own earlier in the window (boot 2026-11-26 10:04, its node
+directories appearing 2.9 hours later). Two machines in this run have therefore hung or been rebooted,
+and in both cases the fleet recovered without a human re-joining anything: the agents are scheduled
+tasks that start at boot, the share is re-reached, and the queue simply waits.
+
+Worth distinguishing the two, because they are not the same fault. The coordinator's was a planned
+restart. mdma's was a **hang** - the kind that produces no error and no log line, and that no
+watchdog can diagnose from inside the machine. If it recurs while the title is loaded, the suspicion
+falls on the GPU stack (driver, power limit, or the 32 GB box paging under 32 concurrent slots), not
+on the fleet software.
+
 It also explains the fleet's age arithmetic. Three machines with staggered boots add up to ~100
 station-hours (51.8 + 38.8 + 9.5), while the continuous three-station window is only about 9.5 hours.
 Both are true; quoting either as 'the fleet has run 100 hours' would be a category error. When
