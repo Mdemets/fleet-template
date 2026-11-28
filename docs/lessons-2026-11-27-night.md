@@ -131,3 +131,22 @@ It also explains the fleet's age arithmetic. Three machines with staggered boots
 station-hours (51.8 + 38.8 + 9.5), while the continuous three-station window is only about 9.5 hours.
 Both are true; quoting either as 'the fleet has run 100 hours' would be a category error. When
 reporting age, say which clock.
+
+## 11. A test that rebooted a machine
+
+I added a reboot switch, tested it with a dry-run flag on a manual invocation, and left the request file on
+disk while I went on to verify something else. The *scheduled* watchdog has no dry-run flag: it saw the same
+request, found the node drained, and restarted the coordinator. Boot time moved; nothing was lost.
+
+Three rules came out of it, all now enforced in code:
+
+1. **A dry-run flag on a manual run is worthless while the scheduled task is live.** Test the refusal paths,
+   not the happy path - or pause the task first.
+2. **A request file is a remote reboot primitive.** It now carries `confirm = "drain-then-reboot"`, and a
+   request without it is ignored.
+3. **Requests expire.** Older than 30 minutes and the request is removed without acting, so a forgotten file
+   cannot fire hours later.
+
+The coordinator also requires the word `REBOOT` typed into a prompt, because it hosts the share: a stray
+restart there costs the whole fleet, not one station's slots. Verified afterwards that a stale request and an
+unconfirmed request are both refused, with the boot time unchanged.

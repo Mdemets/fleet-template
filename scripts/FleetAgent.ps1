@@ -1,4 +1,4 @@
-# FleetAgent.ps1 - one process per station owning the share session, fanning work out to
+﻿# FleetAgent.ps1 - one process per station owning the share session, fanning work out to
 # runspaces. Child processes do not inherit a network session (three attempts proved it),
 # but runspaces live inside this process and use its session.
 param([int]$Slots = 8)
@@ -61,16 +61,48 @@ function Complete-Task($key) {
         # whether work succeeded, which is the question a fleet log exists to answer
         $durMs = 0
         try { $durMs = [int]((Get-Date).ToUniversalTime() - [datetime]::Parse($j.ClaimedAt).ToUniversalTime()).TotalMilliseconds } catch { }
+        try { ((Get-Date).ToUniversalTime().ToString('o')) + '|' + $node + '|' + $j.Id + '|' + $res.exitCode + '|' + $durMs | Add-Content -LiteralPath (Join-Path $myRes '..\..\status\events.log') -Encoding utf8 -ErrorAction SilentlyContinue } catch { }
         Alog ('finish ' + $j.Id + ' exit=' + $res.exitCode + ' ' + $durMs + 'ms' + $(if ($timedOut) { ' TIMEOUT' } else { '' }))
     } catch { Alog ('complete failed ' + $j.Id + ': ' + $_.Exception.Message) }
 }
 
 while ($true) {
     try {
+# heartbeat early: written before the claim guard so it cannot freeze
+        try { @{ ts = (Get-Date).ToUniversalTime().ToString('o'); node = $node; active = $active.Count; ids = @($active.Keys) } | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $myRes 'heartbeat.json') -Encoding ascii -Force } catch { }
         foreach ($k in @($active.Keys)) { if ($active[$k].Handle.IsCompleted) { Complete-Task $k } }
 
         $capacity = $Slots - $active.Count
-        if ($capacity -gt 0 -and (Test-Path $qdir)) {
+        # last in line: the coordinator supplies work, it does not compete for it.
+        # If a worker still has a free slot, stand down for this cycle and let it claim.
+        if ($node -eq 'mdmfury' -and $capacity -gt 0) {
+            $peerRoom = $false
+            $resRoot = Split-Path $myRes -Parent
+            $peerSlots = @{ 'mdma' = 32; 'gr2c3p8' = 16 }
+            foreach ($pn in $peerSlots.Keys) {
+                $hf = Join-Path $resRoot ($pn + '\heartbeat.json')
+                if (Test-Path $hf) {
+                    try {
+                        $hj = Get-Content $hf -Raw | ConvertFrom-Json
+                        $age = ((Get-Date).ToUniversalTime() - [datetime]::Parse($hj.ts).ToUniversalTime()).TotalSeconds
+                        if ($age -lt 30 -and [int]$hj.active -lt [int]$peerSlots[$pn]) { $peerRoom = $true }
+                    } catch { }
+                }
+            }
+            $qd = @(Get-ChildItem -LiteralPath $qdir -Filter 'task-*.json' -File -ErrorAction SilentlyContinue).Count
+$allowWork = ($qd -ge 1000)
+if (-not $allowWork) {
+    $sup = Join-Path $unc 'status/supply.json'
+    if (Test-Path $sup) { try { $sj = Get-Content $sup -Raw | ConvertFrom-Json; if ([int]$sj.remaining -le 0 -and $qd -gt 0) { $allowWork = $true } } catch { } }
+}
+            if (-not $allowWork) { Start-Sleep -Milliseconds 300; continue }
+        }
+        # a pending reboot request drains this node: claim nothing new
+
+        # a pending reboot request drains this node: claim nothing new
+        if (Test-Path (Join-Path $unc ('control/reboot/' + $node + '.json'))) { Start-Sleep -Milliseconds 800; continue }
+
+if ($capacity -gt 0 -and (Test-Path $qdir)) {
             $files = @(Get-ChildItem -LiteralPath $qdir -Filter 'task-*.json' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime | Select-Object -First $capacity)
             foreach ($f in $files) {
                 $mark = Join-Path $locks ($f.Name + '.claim')
@@ -93,6 +125,6 @@ while ($true) {
         }
     } catch { Alog ('loop error: ' + $_.Exception.Message) }
 
-    try { @{ ts = (Get-Date).ToUniversalTime().ToString('o'); node = $node; active = $active.Count } | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $myRes 'heartbeat.json') -Encoding ascii -Force } catch { }
+    try { @{ ts = (Get-Date).ToUniversalTime().ToString('o'); node = $node; active = $active.Count; ids = @($active.Keys) } | ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $myRes 'heartbeat.json') -Encoding ascii -Force } catch { }
     if ($active.Count -gt 0) { Start-Sleep -Milliseconds 100 } else { Start-Sleep -Milliseconds 800 }
 }

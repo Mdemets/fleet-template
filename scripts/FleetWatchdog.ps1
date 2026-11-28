@@ -4,6 +4,43 @@ $share='D:/fleet'
 $log=Join-Path $share 'status/watchdog.log'
 function W($m){ ((Get-Date).ToUniversalTime().ToString('o')) + '  ' + $m | Add-Content -LiteralPath $log -Encoding utf8 }
 
+
+# ---- operator reboot request: drain, then restart ----
+$nodeMap = @{ 'MDMFURY' = 'mdmfury'; 'MDMA' = 'mdma'; 'DESKTOP-GR2C3P8' = 'gr2c3p8' }
+$nodeName = $nodeMap[$env:COMPUTERNAME.ToUpper()]
+if ($nodeName) {
+    $req = Join-Path $share ('control/reboot/' + $nodeName + '.json')
+    if (Test-Path $req) {
+        # a request must be explicit and fresh: a stray or forgotten file must never restart a machine
+        $rq = $null
+        try { $rq = Get-Content $req -Raw -ErrorAction Stop | ConvertFrom-Json } catch { }
+        $confirmed = ($rq -and [string]$rq.confirm -eq 'drain-then-reboot')
+        $ageMin = 9999
+        if ($rq -and $rq.requested) { try { $ageMin = ((Get-Date).ToUniversalTime() - [datetime]::Parse([string]$rq.requested).ToUniversalTime()).TotalMinutes } catch { } }
+        if (-not $confirmed) {
+            W 'reboot request ignored: no explicit confirmation in the file'
+        } elseif ($ageMin -gt 30) {
+            W ('reboot request expired (' + [int]$ageMin + ' min old) - removed without restarting')
+            Remove-Item -LiteralPath $req -Force -ErrorAction SilentlyContinue
+        } else {
+        $active = -1
+        $hb = Join-Path $share ('results/' + $nodeName + '/heartbeat.json')
+        if (Test-Path $hb) { try { $active = [int]((Get-Content $hb -Raw -ErrorAction Stop | ConvertFrom-Json).active) } catch { } }
+        if ($active -gt 0) {
+            W ('reboot requested: draining (' + $active + ' task(s) still running)')
+        } else {
+            if ($env:FLEET_REBOOT_DRYRUN -eq '1') {
+                W 'reboot requested: drained - DRY RUN, not restarting'
+            } else {
+                W 'reboot requested: drained - restarting in 10 seconds'
+                Remove-Item -LiteralPath $req -Force -ErrorAction SilentlyContinue
+                shutdown.exe /r /t 10 /c "FleetWatch: operator-requested reboot after drain" 2>&1 | Out-Null
+            }
+        }
+        }
+    }
+}
+
 $queue=@(Get-ChildItem (Join-Path $share 'queue') -File -Filter 'task-*.json' -ErrorAction SilentlyContinue)
 $qnames=@{}
 foreach ($f in $queue) { $qnames[$f.Name]=$true }

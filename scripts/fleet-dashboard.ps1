@@ -25,6 +25,12 @@ function Get-Tput {
     return $rows
 }
 
+function Get-Supply {
+    $f = Join-Path (Join-Path $Share 'status') 'supply.json'
+    if (-not (Test-Path $f)) { return $null }
+    try { return (Get-Content $f -Raw -ErrorAction Stop | ConvertFrom-Json) } catch { return $null }
+}
+
 function Get-Specs {
     try {
         $f = Join-Path (Join-Path $Share 'status') 'specs.json'
@@ -173,7 +179,7 @@ if (Test-Path $evLog) {
 }
 $ev = @($ev | Sort-Object { $_.ts } -Descending | Select-Object -First 150)
 $pending = $qFiles.Count + (@($nodes.Keys | ForEach-Object { [int]$nodes[$_].active }) | Measure-Object -Sum).Sum
-[ordered]@{ ts = $nowUtc.ToString('o'); queue = $qFiles.Count; queueOldestSec = $oldest; claimed = $claimed; locks = $locks; working = $working; total = $nodes.Count; nodes = $sorted; reaper = $reaper; monitor = $monitor; created = (Get-Created); tput = (Get-Tput); createdNew = ((Get-Created) - $script:baseCreated); startedAt = $script:startedAt; doneTotal = (Done-Total); specs = (Get-Specs); doneWin = (Win-Counts); uptimeSec = ([int]((Get-Date) - [datetime]::Parse($script:startedAt)).TotalSeconds); pending = $pending; events = $ev }
+[ordered]@{ ts = $nowUtc.ToString('o'); queue = $qFiles.Count; queueOldestSec = $oldest; claimed = $claimed; locks = $locks; working = $working; total = $nodes.Count; nodes = $sorted; reaper = $reaper; monitor = $monitor; created = (Get-Created); tput = (Get-Tput); supply = (Get-Supply); createdNew = ((Get-Created) - $script:baseCreated); startedAt = $script:startedAt; doneTotal = (Done-Total); specs = (Get-Specs); doneWin = (Win-Counts); uptimeSec = ([int]((Get-Date) - [datetime]::Parse($script:startedAt)).TotalSeconds); pending = $pending; events = $ev }
 }
 
 function Health {
@@ -224,9 +230,9 @@ body.wide{padding-right:640px}
 .ficon[data-form=desktop]{border-color:#8a6320;background:#1a1408}
 .ficon[data-form=desktop] .fform{color:#e8b45e;font-weight:600}
 .ficon:hover{opacity:1!important}
-</style></head><body>
+.ficon{position:relative}.pw{position:absolute;top:-7px;right:-7px;font-size:11px;color:#888;background:#141414;border:1px solid #333;border-radius:50%;width:17px;height:17px;line-height:15px;text-align:center;cursor:pointer;opacity:0}.ficon:hover .pw{opacity:1}.pw:hover{color:#f87171;border-color:#8a2020}.offdot{position:absolute;top:-4px;left:-4px;width:7px;height:7px;border-radius:50%}</style></head><body>
 <aside id="log"><h2>activity <span><button id="xmin" title="minimise">&#8211;</button> <button id="xmax" title="maximise">&#9723;</button></span></h2><div id="loglist"></div></aside>
-<h1>FleetWatch</h1><div id="fleet-icons" style="display:flex;gap:14px;align-items:center;margin:6px 0 2px"></div><div id="specbox" style="font-size:11px;color:#bbb;margin:0 0 10px;min-height:0"></div><div class="sub" id="sub">loading</div>
+<h1>FleetWatch</h1><div id="endgame"></div><div id="fleet-icons" style="display:flex;gap:14px;align-items:center;margin:6px 0 2px"></div><div id="specbox" style="font-size:11px;color:#bbb;margin:0 0 10px;min-height:0"></div><div class="sub" id="sub">loading</div>
 <p id="ctl"><button data-cmd="refill">refill</button> <button data-cmd="pause">pause</button> <button data-cmd="resume">resume</button> <button data-cmd="drain">drain</button> <button data-cmd="alarm" style="border-color:#8a2020">alarm</button> <span class="dim" id="ctlmsg"></span></p>
 <p><button id="restart" data-token="__RESTART_TOKEN__" style="background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:6px;padding:6px 12px;font:inherit;cursor:pointer">restart dashboard</button> <span class="dim" id="rsmsg"></span></p>
 <div class="kpi">
@@ -324,8 +330,18 @@ const logEl=document.getElementById('log');
 const mx=document.getElementById('xmax');if(mx){mx.onclick=function(){logEl.classList.toggle('wide');document.body.classList.toggle('wide');};}
 const mn=document.getElementById('xmin');if(mn){mn.onclick=function(){logEl.classList.toggle('min');document.body.classList.toggle('min');};}
 logEl.addEventListener('click',function(){if(logEl.classList.contains('min')){logEl.classList.remove('min');document.body.classList.remove('min');}});
-function renderIcons(sp){var box=document.getElementById('fleet-icons');if(!box)return;var keys=Object.keys(sp);if(!keys.length){box.innerHTML='';return;}box.innerHTML=keys.map(function(k){var v=sp[k];var ic=(v.form==='laptop')?'\uD83D\uDCBB':'\uD83D\uDDA5';var cls=(selNode===k)?'style="opacity:1;border-color:#4ade80"':'style="opacity:.65;border-color:#333"';return '<span class="ficon" data-n="'+k+'" data-form="'+v.form+'" '+cls+' title="'+k+' ('+v.form+')">'+ic+'<span class="fname">'+k+'<br><span class="fform">'+v.form+'</span></span></span>';}).join('');Array.prototype.forEach.call(box.querySelectorAll('.ficon'),function(el){el.onclick=function(){var n=el.getAttribute('data-n');var v=sp[n];var b=document.getElementById('specbox');if(!b)return;if(b.getAttribute('data-n')===n){b.innerHTML='';b.removeAttribute('data-n');return;}b.setAttribute('data-n',n);b.innerHTML='<b>'+n+'</b> &middot; '+v.role+' &middot; '+v.model+' &middot; '+v.cpu+' ('+v.cores+'c/'+v.threads+'t) &middot; '+v.ramGB+' GB RAM &middot; '+v.gpu+' &middot; '+v.slots+' slots &middot; '+v.freeGB+' GB free &middot; '+v.host;};});}
-function renderTopics(ev){const box=document.getElementById('topics');if(!box)return;if(selNode)ev=ev.filter(function(e){return e.node===selNode;});const run=ev.filter(e=>e.state==='running'&&e.topic);const done=ev.filter(e=>e.state==='done');const parts=[];run.slice(0,10).forEach(e=>parts.push('<div>▶ <span style="color:#4ade80">'+esc(e.topic)+'</span> <span style="color:#666">'+esc(e.node)+'</span></div>'));done.slice(0,8).forEach(e=>parts.push('<div style="color:#555">✓ '+(e.topic?('<span style="color:#777">'+esc(e.topic)+'</span>'):esc(e.id))+'</div>'));box.innerHTML=parts.join('')||'<span style="color:#555">no topics yet</span>';}let winKey='h1';let lastD=null;const winMap={w1h:'h1',w6h:'h6',wd1:'d1',ww1:'w1',wAll:'all'};function updateCw(){const el=document.getElementById('cw');if(el&&lastD&&lastD.doneWin)el.textContent=lastD.doneWin[winKey];}Object.keys(winMap).forEach(function(id){const b=document.getElementById(id);if(b){b.onclick=function(){winKey=winMap[id];updateCw();};b.style.cssText='background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:5px;font:inherit;font-size:10px;padding:3px 8px;cursor:pointer';}});setInterval(async function(){try{const r=await fetch('/health',{cache:'no-store'});const d=await r.json();renderLog(d.events||[]);renderTopics(d.events||[]);renderIcons(d.specs||{});(function(){var el=document.getElementById('cw');if(el&&d.doneWin&&d.doneWin[winKey]!==undefined)el.textContent=d.doneWin[winKey];})();const cn=document.getElementById('crnew');if(cn&&d.createdNew!==undefined)cn.textContent=d.createdNew;const tot=document.getElementById('kpitot');const cur=document.querySelector('.kpi');
+function renderEndgame(j){
+  var el=document.getElementById('endgame'); if(!el) return;
+  var sp=j.supply||{}; var rem=(sp.remaining===undefined?null:Number(sp.remaining));
+  if(rem===null){ el.innerHTML=''; return; }
+  if(rem<=0){
+    el.innerHTML='<div style="border:1px solid #8a6320;background:#1a1408;color:#e8b45e;border-radius:6px;padding:5px 10px;font-size:11px;margin:2px 0 6px">ENDGAME - no further tasks can be created from scope (corpus '+sp.corpus+', all seen). Remaining queue and running work is the last of it.</div>';
+  } else {
+    el.innerHTML='<div style="color:#777;font-size:10px;margin:2px 0 6px">work still to be created: '+rem+' of '+sp.corpus+'</div>';
+  }
+}
+function renderIcons(sp,jSt){var box=document.getElementById('fleet-icons');if(!box)return;var keys=Object.keys(sp);if(!keys.length){box.innerHTML='';return;}box.innerHTML=keys.map(function(k){var v=sp[k];var ic=(v.form==='laptop')?'\uD83D\uDCBB':'\uD83D\uDDA5';var cls=(selNode===k)?'style="opacity:1;border-color:#4ade80"':'style="opacity:.65;border-color:#333"';var st=(jSt[k]||{});var age=(st.heartbeatAge===undefined?-1:Number(st.heartbeatAge));var dot=(age<0?'#555':(age>180?'#f87171':(age>60?'#e8b45e':'#4ade80')));var off=(st.state==='offline'||age>180);return '<span class="ficon" data-n="'+k+'" data-form="'+v.form+'" '+cls+' title="'+k+' ('+v.form+') heartbeat '+age+'s">'+(off?'<span class="offdot" style="background:'+dot+'"></span>':'')+ic+'<span class="fname">'+k+'<br><span class="fform">'+v.form+'</span></span><span class="pw" data-node="'+k+'" title="reboot '+k+' after drain">&#9211;</span></span>';}).join('');Array.prototype.forEach.call(box.querySelectorAll('.pw'),function(sw){sw.onclick=function(ev){ev.stopPropagation();var n=sw.getAttribute('data-node');if(!confirm('Reboot '+n+'?\n\nIt stops claiming new tasks, finishes what is running, then restarts.'))return;if(n==='mdmfury'){var typed=prompt('The coordinator hosts the share for the whole fleet.\n\nType REBOOT to restart it:');if(!typed||typed.trim().toUpperCase()!=='REBOOT'){var b0=document.getElementById('specbox');if(b0){b0.textContent='coordinator reboot cancelled';}return;}}var tok=document.getElementById('restart');fetch('/control?cmd=reboot&node='+encodeURIComponent(n),{method:'POST',headers:{'X-Restart-Token':tok?tok.getAttribute('data-token'):''}}).then(function(r){return r.json();}).then(function(){var b=document.getElementById('specbox');if(b){b.textContent='reboot queued for '+n+' (drains, then restarts)';}}).catch(function(){});};});Array.prototype.forEach.call(box.querySelectorAll('.ficon'),function(el){el.onclick=function(){var n=el.getAttribute('data-n');var v=sp[n];var b=document.getElementById('specbox');if(!b)return;if(b.getAttribute('data-n')===n){b.innerHTML='';b.removeAttribute('data-n');return;}b.setAttribute('data-n',n);b.innerHTML='<b>'+n+'</b> &middot; '+v.role+' &middot; '+v.model+' &middot; '+v.cpu+' ('+v.cores+'c/'+v.threads+'t) &middot; '+v.ramGB+' GB RAM &middot; '+v.gpu+' &middot; '+v.slots+' slots &middot; '+v.freeGB+' GB free &middot; '+v.host;};});}
+function renderTopics(ev){const box=document.getElementById('topics');if(!box)return;if(selNode)ev=ev.filter(function(e){return e.node===selNode;});const run=ev.filter(e=>e.state==='running'&&e.topic);const done=ev.filter(e=>e.state==='done');const parts=[];run.slice(0,10).forEach(e=>parts.push('<div>▶ <span style="color:#4ade80">'+esc(e.topic)+'</span> <span style="color:#666">'+esc(e.node)+'</span></div>'));done.slice(0,8).forEach(e=>parts.push('<div style="color:#555">✓ '+(e.topic?('<span style="color:#777">'+esc(e.topic)+'</span>'):esc(e.id))+'</div>'));box.innerHTML=parts.join('')||'<span style="color:#555">no topics yet</span>';}let winKey='h1';let lastD=null;const winMap={w1h:'h1',w6h:'h6',wd1:'d1',ww1:'w1',wAll:'all'};function updateCw(){const el=document.getElementById('cw');if(el&&lastD&&lastD.doneWin)el.textContent=lastD.doneWin[winKey];}Object.keys(winMap).forEach(function(id){const b=document.getElementById(id);if(b){b.onclick=function(){winKey=winMap[id];updateCw();};b.style.cssText='background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:5px;font:inherit;font-size:10px;padding:3px 8px;cursor:pointer';}});setInterval(async function(){try{const r=await fetch('/health',{cache:'no-store'});const d=await r.json();renderLog(d.events||[]);renderTopics(d.events||[]);renderIcons(d.specs||{},d.nodes||{});renderEndgame(d);(function(){var el=document.getElementById('cw');if(el&&d.doneWin&&d.doneWin[winKey]!==undefined)el.textContent=d.doneWin[winKey];})();const cn=document.getElementById('crnew');if(cn&&d.createdNew!==undefined)cn.textContent=d.createdNew;const tot=document.getElementById('kpitot');const cur=document.querySelector('.kpi');
 function fillTotals(d){lastD=d;if(d&&d.doneWin)updateCw();var a=document.getElementById('t1');if(a)a.textContent=d.created;var b=document.getElementById('t2');if(b)b.textContent=d.doneTotal;var c=document.getElementById('t3');if(c)c.textContent=d.createdNew;var e2=document.getElementById('t4');if(e2)e2.textContent=(d.uptimeSec||0)+'s';}
 const pd=document.getElementById('pend');if(pd&&d.pending!==undefined)pd.textContent=d.pending;const cq=document.getElementById('q');if(cq&&d.queue!==undefined)cq.textContent=d.queue;}catch(x){}},400);
 </script>
@@ -343,6 +359,24 @@ var b=document.getElementById('csend');
 b.onclick=async function(){var i=document.getElementById('cmsg');var v=(i.value||'').trim();if(!v)return;
 try{var r=await fetch('/control?cmd=say&text='+encodeURIComponent(v),{method:'POST',headers:{'X-Restart-Token':t}});
 var j=await r.json();i.value='';document.getElementById('clog').innerHTML=(j.recent||[]).map(function(x){return '<div>'+x+'</div>';}).join('');}catch(e){}};
+})();
+</script>
+<script>
+/* csendHandler */
+(function(){
+  function token(){var r=document.getElementById('restart');return r?r.getAttribute('data-token'):'';}
+  function show(lines){var c=document.getElementById('clog');if(!c)return;c.innerHTML=(lines||[]).map(function(x){return '<div>'+String(x).replace(/[&<>]/g,function(k){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[k];})+'</div>';}).join('');}
+  function send(){
+    var i=document.getElementById('cmsg'); if(!i) return;
+    var v=(i.value||'').trim(); if(!v) return;
+    i.value=''; show(['sending...']);
+    fetch('/control?cmd=say&text='+encodeURIComponent(v),{method:'POST',headers:{'X-Restart-Token':token()},cache:'no-store'})
+      .then(function(r){return r.json();})
+      .then(function(j){ if(j&&j.ok){ show(j.recent||['sent']); } else { show(['refused: '+(j&&j.error?j.error:'no token')]); } })
+      .catch(function(e){ show(['failed: '+e]); });
+  }
+  var b=document.getElementById('csend'); if(b){ b.onclick=send; }
+  var i=document.getElementById('cmsg'); if(i){ i.addEventListener('keydown',function(e){ if(e.key==='Enter') send(); }); }
 })();
 </script>
 </body></html>
@@ -368,6 +402,7 @@ if ($reqPath -eq '/control') {
         $body = '{"error":"control requires a valid token"}'
     } else {
         $cmd = [string]$ctx.Request.QueryString['cmd']
+        $sayLines = @()
         $ctl = 'D:\fleet\control'
         New-Item -ItemType Directory -Force -Path $ctl | Out-Null
         $stateFile = Join-Path $ctl 'state.json'
@@ -377,6 +412,16 @@ if ($reqPath -eq '/control') {
             'pause'  { $state.pause = $true }
             'resume' { $state.pause = $false; $state.drain = $false }
             'drain'  { $state.drain = $true }
+            'reboot' {
+                $node = [string]$ctx.Request.QueryString['node']
+                $known = @('mdmfury','mdma','gr2c3p8')
+                if ($known -contains $node) {
+                    New-Item -ItemType Directory -Force -Path (Join-Path $ctl 'reboot') | Out-Null
+                    ([ordered]@{ node = $node; requested = (Get-Date).ToUniversalTime().ToString('o'); by = 'FleetWatch'; confirm = 'drain-then-reboot' } | ConvertTo-Json -Compress) | Set-Content -LiteralPath (Join-Path $ctl ('reboot/' + $node + '.json')) -Encoding utf8
+                    Dlog ('reboot requested for ' + $node + ' after drain')
+                    $sayLines = @('queued: reboot ' + $node + ' after its running tasks finish')
+                } else { $sayLines = @('unknown node') }
+            }
             'say'    {
                 $txt = [string]$ctx.Request.QueryString['text']
                 if ($txt) {
@@ -384,15 +429,30 @@ if ($reqPath -eq '/control') {
                     New-Item -ItemType Directory -Force -Path $chatDir | Out-Null
                     (((Get-Date).ToUniversalTime().ToString('o')) + '|' + $txt) | Add-Content -LiteralPath (Join-Path $chatDir 'inbox.log') -Encoding utf8
                     Dlog ('console > ' + $txt)
+                    try { $sayLines = @(Get-Content (Join-Path $chatDir 'inbox.log') -Tail 6) } catch { }
                 }
             }
             'alarm'  { ((Get-Date).ToUniversalTime().ToString('o')) | Set-Content -LiteralPath (Join-Path $ctl 'alarm.txt') -Encoding utf8; Dlog ('ALARM raised from ' + $ctx.Request.RemoteEndPoint.Address) }
-            'refill' { Start-Process powershell -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','C:\Users\Maarten\fleet\FleetCorpusFinder.ps1' -WindowStyle Hidden }
+            'refill' {
+                $seeF = 'D:\fleet\backlog\corpus-seen.txt'
+                $corF = 'D:\fleet\backlog\corpus.json'
+                $tN = 0; if (Test-Path $corF) { try { $tN = @(Get-Content $corF -Raw | ConvertFrom-Json | ForEach-Object { $_ }).Count } catch { } }
+                $sN = 0; if (Test-Path $seeF) { $sN = @(Get-Content $seeF | Where-Object { $_.Trim() }).Count }
+                if ($tN -gt 0 -and $sN -ge $tN) {
+                    Remove-Item $seeF -Force -ErrorAction SilentlyContinue
+                    Dlog 'control: refill found supply exhausted - started a new verification cycle'
+                }
+                Start-Process powershell -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','C:\Users\Maarten\fleet\FleetCorpusFinder.ps1' -WindowStyle Hidden
+            }
         }
         $state | ConvertTo-Json | Set-Content -LiteralPath $stateFile -Encoding utf8
         Dlog ('control: ' + $cmd + ' pause=' + $state.pause + ' drain=' + $state.drain)
         $ctx.Response.StatusCode = 200
-        $body = ('{"ok":true,"cmd":"' + $cmd + '","pause":' + $state.pause.ToString().ToLower() + ',"drain":' + $state.drain.ToString().ToLower() + '}')
+        if ($cmd -eq 'say') {
+            $body = ('{"ok":true,"cmd":"say","recent":' + (ConvertTo-Json -Compress @($sayLines)) + '}')
+        } else {
+            $body = ('{"ok":true,"cmd":"' + $cmd + '","pause":' + $state.pause.ToString().ToLower() + ',"drain":' + $state.drain.ToString().ToLower() + '}')
+        }
     }
 } elseif ($reqPath -eq '/restart') {
     $tokFile = 'C:\Users\Maarten\fleet\restart.token'

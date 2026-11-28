@@ -1,3 +1,13 @@
+## 2026-11-28 - station state colours and a guarded reboot switch
+
+- `fleet-dashboard.ps1`: station icons show heartbeat age (green <60 s, amber <180 s, red beyond) and a
+  hover power switch. Rebooting writes `control/reboot/<node>.json` with an explicit confirmation marker;
+  the coordinator additionally requires the word REBOOT typed.
+- `FleetAgent.ps1`: claims nothing while a reboot request stands for its node - that is the drain.
+- `FleetWatchdog.ps1`: restarts only when the node reports zero running tasks, ignores unconfirmed
+  requests, and removes requests older than 30 minutes without acting.
+- `docs/lessons-2026-11-27-night.md` section 11: the test that rebooted the coordinator, and the three
+  rules that came out of it.
 ## 2026-11-28 - a repo watcher that costs nothing when nothing changed
 
 - `scripts/FleetRepoWatch.ps1` (new): polls both repositories every 10 minutes with a stored `ETag` and
