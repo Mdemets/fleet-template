@@ -230,9 +230,10 @@ body.wide{padding-right:640px}
 .ficon[data-form=desktop]{border-color:#8a6320;background:#1a1408}
 .ficon[data-form=desktop] .fform{color:#e8b45e;font-weight:600}
 .ficon:hover{opacity:1!important}
-.ficon{position:relative}.pw{position:absolute;top:-7px;right:-7px;font-size:11px;color:#888;background:#141414;border:1px solid #333;border-radius:50%;width:17px;height:17px;line-height:15px;text-align:center;cursor:pointer;opacity:0}.ficon:hover .pw{opacity:1}.pw:hover{color:#f87171;border-color:#8a2020}.offdot{position:absolute;top:-4px;left:-4px;width:7px;height:7px;border-radius:50%}</style></head><body>
-<aside id="log"><h2>activity <span><button id="xmin" title="minimise">&#8211;</button> <button id="xmax" title="maximise">&#9723;</button></span></h2><div id="loglist"></div></aside>
+.ficon{position:relative}.pw{position:absolute;top:-7px;right:-7px;font-size:11px;color:#888;background:#141414;border:1px solid #333;border-radius:50%;width:17px;height:17px;line-height:15px;text-align:center;cursor:pointer;opacity:0}.ficon:hover .pw{opacity:1}.pw:hover{color:#f87171;border-color:#8a2020}.offdot{position:absolute;top:-4px;left:-4px;width:7px;height:7px;border-radius:50%}body.nolog #log{display:none} body.nolog{padding-right:12px} #acttoggle.on{background:#12301f;border-color:#2c5d3a}#viewctl{margin:0 0 8px}#viewctl button{background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:6px;font:inherit;font-size:11px;padding:4px 10px;cursor:pointer}</style></head><body>
+<aside id="log"><h2>activity</h2><div id="loglist"></div></aside>
 <h1>FleetWatch</h1><div id="endgame"></div><div id="fleet-icons" style="display:flex;gap:14px;align-items:center;margin:6px 0 2px"></div><div id="specbox" style="font-size:11px;color:#bbb;margin:0 0 10px;min-height:0"></div><div class="sub" id="sub">loading</div>
+<p id="viewctl"><button id="acttoggle" title="show or hide the activity panel">activity: on</button></p>
 <p id="ctl"><button data-cmd="refill">refill</button> <button data-cmd="pause">pause</button> <button data-cmd="resume">resume</button> <button data-cmd="drain">drain</button> <button data-cmd="alarm" style="border-color:#8a2020">alarm</button> <span class="dim" id="ctlmsg"></span></p>
 <p><button id="restart" data-token="__RESTART_TOKEN__" style="background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:6px;padding:6px 12px;font:inherit;cursor:pointer">restart dashboard</button> <span class="dim" id="rsmsg"></span></p>
 <div class="kpi">
@@ -327,8 +328,8 @@ function ring(p){return '<svg class="ring" viewBox="0 0 16 16"><circle cx="8" cy
 let selNode=null;function pickNode(n){selNode=(selNode===n)?null:n;}
 function renderLog(ev){ev=(selNode?ev.filter(function(e){return e.node===selNode;}):ev);const box=document.getElementById('loglist');if(!box)return;const now=Date.now();box.innerHTML=ev.map(function(e){const age=(now-Date.parse(e.ts))/1000;if(e.state==='running'){return '<div class="ev">'+ring(Math.min(0.95,Math.max(0.05,age/6)))+'<span class="id">'+e.id+'</span><span class="nd">'+e.node+'</span></div>';}return '<div class="ev"><span class="dot"></span><span class="id">'+e.id+'</span><span class="nd">'+e.node+(e.ms?' '+e.ms+'ms':'')+'</span></div>';}).join('');}
 const logEl=document.getElementById('log');
-const mx=document.getElementById('xmax');if(mx){mx.onclick=function(){logEl.classList.toggle('wide');document.body.classList.toggle('wide');};}
-const mn=document.getElementById('xmin');if(mn){mn.onclick=function(){logEl.classList.toggle('min');document.body.classList.toggle('min');};}
+const at=document.getElementById('acttoggle');if(at){if(document.body.classList.contains('nolog')){at.textContent='activity: off';}else{at.classList.add('on');}at.onclick=function(){var off=document.body.classList.toggle('nolog');at.textContent='activity: '+(off?'off':'on');at.classList.toggle('on',!off);};}
+
 logEl.addEventListener('click',function(){if(logEl.classList.contains('min')){logEl.classList.remove('min');document.body.classList.remove('min');}});
 function renderEndgame(j){
   var el=document.getElementById('endgame'); if(!el) return;
@@ -347,7 +348,7 @@ const pd=document.getElementById('pend');if(pd&&d.pending!==undefined)pd.textCon
 </script>
 <script>
 (function(){var tok=document.getElementById('restart');var t=tok?tok.getAttribute('data-token'):'';
-Array.prototype.forEach.call(document.querySelectorAll('#ctl button'),function(b){b.style.cssText='background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:6px;font:inherit;font-size:11px;padding:4px 10px;cursor:pointer';
+Array.prototype.forEach.call(document.querySelectorAll('#ctl button[data-cmd]'),function(b){b.style.cssText='background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:6px;font:inherit;font-size:11px;padding:4px 10px;cursor:pointer';
 b.onclick=async function(){var m=document.getElementById('ctlmsg');m.textContent=b.dataset.cmd+'...';
 try{var r=await fetch('/control?cmd='+b.dataset.cmd,{method:'POST',headers:{'X-Restart-Token':t},cache:'no-store'});var j=await r.json();
 m.textContent=r.status===200?('ok: '+j.cmd+' (pause='+j.pause+' drain='+j.drain+')'):('refused '+r.status);}catch(e){m.textContent='failed';}};

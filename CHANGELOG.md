@@ -1,3 +1,10 @@
+## 2026-11-28 - the activity panel is a switch, not a drag
+
+- `fleet-dashboard.ps1`: the minimise/maximise buttons that lived inside the activity rail are gone. A
+  single **activity: on/off** switch sits outside the panel, above the controls, and hides or shows it
+  entirely - the page reflows to full width instead of leaving a column-sized gap.
+- The control row's click handler is scoped to `#ctl button[data-cmd]`, so decorative buttons cannot
+  inherit a fleet command. That scoping bug is what made the first version of the switch inert.
 ## 2026-11-28 - station state colours and a guarded reboot switch
 
 - `fleet-dashboard.ps1`: station icons show heartbeat age (green <60 s, amber <180 s, red beyond) and a
