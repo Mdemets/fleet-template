@@ -361,7 +361,11 @@ function renderDiscovery(j){
 function renderScope(j){
   var el=document.getElementById('scope'); if(!el) return;
   var t=(j&&j.scope)?String(j.scope):'';
-  el.innerHTML=t?('<span style="color:#888;text-transform:uppercase;letter-spacing:.05em;font-size:10px">scope</span> &middot; '+esc(t)):'';
+  if(!t){ el.innerHTML=''; return; }
+  var parts=String(t).split(/\r?\n/).filter(function(x){return x.trim().length;});
+  var head='<span style="color:#888;text-transform:uppercase;letter-spacing:.05em;font-size:10px">scope</span> &middot; '+esc(parts[0]||'');
+  var rest=parts.slice(1).map(function(x){return '<div style="margin-top:4px;opacity:.72;font-style:italic">'+esc(x)+'</div>';}).join('');
+  el.innerHTML=head+rest;
 }
 function renderEndgame(j){
   var el=document.getElementById('endgame'); if(!el) return;

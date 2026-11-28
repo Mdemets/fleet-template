@@ -1,3 +1,8 @@
+## 2026-11-28 - the scope reads as an assignment and a question
+
+- `fleet-dashboard.ps1`: `status/scope.txt` may hold several lines. The first is the assignment and reads
+  as the scope; every further line is shown below it, dimmed and italic - so the operator question that
+  started the work sits on its own line instead of trailing the description.
 ## 2026-11-28 - the repo watcher counts what it finds, and shows it is alive
 
 - `FleetRepoWatch.ps1`: a discovery window opens when a poll finds new issues. `discovered` counts topics
