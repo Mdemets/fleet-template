@@ -46,6 +46,18 @@ All five, or it does not go out:
 If any of those is missing, it is an observation, not a fix. Observations go out as comments, never
 as change requests.
 
+## Hard exclusions - never published, in any form
+
+Some artefacts must not leave the machines they were made on, whatever else this policy allows:
+
+- **Project Leonida** (the GTA VI static-recompilation toolchain and anything derived from it): source,
+  builds, logs, dump output, shader output, analysis, measurements, screenshots, corpus data. The
+  operator's instruction, 2026-11-28: *"data from this project should never be made public online."*
+  This is absolute - it overrides convenience, sharing, bundling and "it would help someone".
+- Anything belonging to a repository that has been taken down, mirrored back to any account.
+- Credentials, tokens, share paths and host addresses in any artefact that leaves the LAN.
+
+When a rule and a habit disagree here, the rule wins and the operator is told what was withheld.
 ## Never
 
 - Change someone else's project directly. Even when it is technically possible.

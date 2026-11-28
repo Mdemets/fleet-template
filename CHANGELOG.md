@@ -1,3 +1,10 @@
+## 2026-11-28 - a hard exclusion, and what it overrides
+
+- `PUSH-POLICY.md`, `docs/rules.md` (R9b) and `AGENTS.md`: **no Project Leonida artefact is ever published
+  online** - source, builds, logs, analysis, measurements, screenshots. Local only, permanently.
+- Audit at the time of writing: zero Leonida files on the share, zero references in this repository, so
+  nothing needed retracting.
+
 ## 2026-11-28 - FleetWatch, the operator console, and a queue that cannot dead-end
 
 - Renamed the monitor page to **FleetWatch** (`fleet-dashboard.ps1`), with station icons, click-to-filter

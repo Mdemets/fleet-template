@@ -141,3 +141,10 @@ that are not fixes go out as comments, never as change requests.
 written in response to an agent pushing 147 commits into someone else's repository uninvited. That
 overshoot made legitimate contribution impossible. The operator's actual instruction was not to
 interfere, and a request for review is not interference: it changes nothing unless accepted.
+
+## R9b - Hard exclusion: Project Leonida
+
+No artefact derived from the Project Leonida recompilation work is ever published online - not source,
+builds, logs, analysis, measurements or screenshots. Local only, permanently. The operator set this on
+2026-11-28 and it overrides sharing, bundling and convenience. Naming the project in policy text is the
+extent of what may appear anywhere else.

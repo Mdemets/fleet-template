@@ -187,6 +187,11 @@ fix - it reproduces, it stops the problem, it does not break other things, it is
 one problem per request - and only after the operator approves that specific request, one at a time.
 Anything short of that is an observation: post it as a comment, never as a change request.
 
+### R9b - Hard exclusion
+
+Project Leonida artefacts (source, builds, logs, analysis, measurements) never go online, in any form.
+Local only. This overrides every other permission in this file.
+
 ### Why these are written down
 
 R1 followed four merges applied to a working line without asking; the coordinator could see the
