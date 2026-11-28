@@ -9,6 +9,8 @@
 - New `scripts/FleetWatchdog.ps1` and `scripts/FleetFeeder.ps1`; updated `scripts/fleet-dashboard.ps1`
   with the control endpoint (refill/pause/resume/drain/alarm), token-checked.
 - Lessons that produced these changes: `docs/lessons-2026-11-27-night.md`.
+- The old issue-scraping finder is deliberately **not** shipped: it dispatched tasks that fetched at run
+  time and failed 99.9%. `FleetCorpusFinder.ps1` supersedes it.
 
 ## 2026-11-27 (late) - the monitor has a picture
 
