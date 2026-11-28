@@ -1,3 +1,11 @@
+## 2026-11-28 - the board states its scope, and the console moves up
+
+- `fleet-dashboard.ps1`: a **scope line** at the top of the page, read from `status/scope.txt`, states the
+  assignment currently being worked - the question that started the activities - so a screenshot of the
+  board carries its own context. The console input sits directly beneath it, at the top, instead of at
+  the bottom of a long page.
+- `FleetDashboardRestart.ps1`: starting the monitor now also triggers the repo watcher and one queue
+  monitor pass, so a redrawn board checks for new work immediately rather than at the next tick.
 ## 2026-11-28 - the activity panel is a switch, not a drag
 
 - `fleet-dashboard.ps1`: the minimise/maximise buttons that lived inside the activity rail are gone. A
