@@ -1,3 +1,15 @@
+## 2026-11-28 - a repo watcher that costs nothing when nothing changed
+
+- `scripts/FleetRepoWatch.ps1` (new): polls both repositories every 10 minutes with a stored `ETag` and
+  `since` filter. An unchanged repo answers `304`, which GitHub does not charge against the rate limit -
+  measured: two polls, zero requests counted. A changed repo is merged into the corpus incrementally and
+  signals an immediate refill.
+- `scripts/FleetQueueMonitor.ps1`: guarantees a refill at least every 10 minutes, held whenever the
+  operator has paused or drained - verified both ways in the log.
+
+Bug found while applying it: PowerShell wrapped the 50-issue JSON array as a single item, so one
+"issue" became the whole list and four corpus entries were written with the list in the number field.
+Fixed by enumerating explicitly, and the four entries were repaired out.
 ## 2026-11-28 - a hard exclusion, and what it overrides
 
 - `PUSH-POLICY.md`, `docs/rules.md` (R9b) and `AGENTS.md`: **no Project Leonida artefact is ever published

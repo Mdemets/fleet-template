@@ -58,9 +58,27 @@ $recent = Count-Recent 5
 
 Q ('queue=' + $queue + ' supply_total=' + $total + ' seen=' + $seen + ' remaining=' + $remaining + ' completed5m=' + $recent)
 
+# operator controls win: no scheduled refill while paused or draining
+$stateFile = Join-Path $ctl 'state.json'
+$paused = $false
+if (Test-Path $stateFile) {
+    try { $st = Get-Content $stateFile -Raw | ConvertFrom-Json; if ($st.pause -or $st.drain) { $paused = $true } } catch { }
+}
+
+$refillStamp = Join-Path $share 'status/last-refill.txt'
+$lastRefill = [datetime]::MinValue
+if (Test-Path $refillStamp) { try { $lastRefill = [datetime]::Parse((Get-Content $refillStamp -Raw).Trim()) } catch { } }
+$dueMin = ((Get-Date).ToUniversalTime() - $lastRefill.ToUniversalTime()).TotalMinutes
+if ($paused) {
+    Q ('scheduled refill held: operator pause or drain is active (' + [int]$dueMin + ' min since last refill)')
+} elseif ($dueMin -ge 10) {
+    Q ('scheduled refill: ' + [int]$dueMin + ' min since the last run')
+    try { & 'C:/Users/Maarten/fleet/FleetCorpusFinder.ps1' | Out-Null; (Get-Date).ToUniversalTime().ToString('o') | Set-Content -LiteralPath $refillStamp -Encoding utf8 } catch { Q ('scheduled refill failed - ' + $_.Exception.Message) }
+}
+
 if ($queue -lt 20 -and $remaining -gt 0) {
     Q ('low water: queue=' + $queue + ' - kicking the finder')
-    try { & 'C:/Users/Maarten/fleet/FleetCorpusFinder.ps1' | Out-Null } catch { Q ('finder failed - ' + $_.Exception.Message) }
+    try { & 'C:/Users/Maarten/fleet/FleetCorpusFinder.ps1' | Out-Null; (Get-Date).ToUniversalTime().ToString('o') | Set-Content -LiteralPath $refillStamp -Encoding utf8 } catch { Q ('finder failed - ' + $_.Exception.Message) }
 }
 
 if ($queue -eq 0 -and $remaining -eq 0) {
