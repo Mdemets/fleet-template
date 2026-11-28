@@ -1,3 +1,9 @@
+## 2026-11-28 - draft: intent to work
+
+- `docs/draft-intent-to-work.md`: the six-stage chain from operator prompt to executed unit, with the
+  unit schema (question, evidence, command, `done_when`, resource, requeue), the two gates, the explicit
+  stop condition, the four-field failure taxonomy drawn from tonight, and the three things still missing.
+
 ## 2026-11-28 - the watcher line names what it watches
 
 - `fleet-dashboard.ps1`: the watcher line now ends with `monitoring <repo>, <repo>`, read from the keys of
