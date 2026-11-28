@@ -1,3 +1,9 @@
+## 2026-11-28 - the draft, tested against a real prompt
+
+- `docs/draft-intent-to-work.md` appendices: the six stages traced through *"build a multi station ai
+  fleet"* (six acceptance criteria, six checks), and a stage-by-stage comparison with the template -
+  execution implemented, intent half missing, with the three additions that close it.
+
 ## 2026-11-28 - draft: intent to work
 
 - `docs/draft-intent-to-work.md`: the six-stage chain from operator prompt to executed unit, with the

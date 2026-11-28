@@ -91,3 +91,54 @@ forever to look busy.
 3. The requeue path needs the worker to rewrite its own task document - today tasks cannot enqueue.
 
 None of these is large; all three are what separates the diagram from the system.
+
+## Appendix A - the method run against a real prompt
+
+Prompt: *"build a multi station ai fleet"*. Traced through the six stages as the draft demands:
+
+**1. Intent.** As stated. Nothing yet.
+
+**2. Interpretation, G1.** Restated before any work: *one shared queue; N machines claim and execute
+independently; every unit carries a verdict; the run ends when nothing more can be generated.*
+Acceptance criteria, and this is the part that must be confirmed rather than assumed:
+
+- a worker claims and returns a unit from the share (result file, exit 0);
+- 16 units run concurrently on one station without duplicate claims;
+- a unit whose input is missing exits **non-zero** (a no-op must not look like success);
+- a stale claim is cleared within five minutes of the holder disappearing;
+- `ENDGAME` appears when supply is 0 and queue is 0.
+
+**3. Decomposition.** Each criterion becomes a *check*, not a step: `CHK-transport`, `CHK-concurrency`,
+`CHK-noop`, `CHK-reaper`, `CHK-monitor`, `CHK-endgame`. Six units, each answerable by one command.
+
+**4. Normalisation.** Each becomes a task document with `evidence` (share path, base commit), `command`,
+`done_when` (exit code or a JSON field), `resource` (share, cargo, GPU), and a requeue threshold.
+
+**5. Execution.** Workers claim; a unit blocked on a busy resource returns to the queue rather than
+sleeping in a slot.
+
+**6. Judgement.** A verdict table: six rows, pass/fail, evidence. Failures become either new checks or a
+`finding`. When every row passes, the *fleet itself* becomes the artifact - which is exactly what this
+template is.
+
+## Appendix B - compared with the template as it stands
+
+| stage | what exists today | verdict |
+|---|---|---|
+| 1 intent | nothing; a human types into a chat | **absent by design** |
+| 2 interpretation | `R2` (sequential instructions), the conflict-reporting rule in `AGENTS.md` | **partial** - instructions are honoured, but no artifact records *what was agreed* |
+| 3 decomposition | nothing; the 52-shard audit splitter was written ad hoc and not shipped | **missing** |
+| 4 normalisation | `docs/task-creation.md` (supply loop, caching, batching); no unit schema | **partial** - describes *how much* work, not *what a unit is* |
+| 5 execution | `FleetAgent`, `FleetWorker`, `FleetWatchdog`, `Invoke-FleetReaper`, `docs/monitoring.md` | **implemented**, except backpressure and per-resource serialisation |
+| 6 judgement | `FleetWatch` KPIs, `ENDGAME` banner, `status/supply.json` | **partial** - state is visible, the verdict table and return loop are not |
+
+So the template implements the *execution* half well and the *intent* half barely: it can run 38,000
+units faithfully and cannot tell you whether they were the right units. Three additions close most of it:
+
+1. a `docs/unit-schema.md` (or a section in `task-creation.md`) fixing the four judgement fields;
+2. `FleetShard.ps1` shipped as the decomposer, with per-resource locks and the requeue threshold;
+3. a small `Assert-Verdict.ps1` so a worker evaluates `done_when` itself and records the verdict next to
+   the raw output, instead of leaving a human to read text.
+
+Everything else - agents, reaper, watchdog, dashboard, supply signal - already exists and was exercised
+tonight. The gap is not machinery; it is the contract around each unit.
