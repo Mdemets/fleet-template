@@ -1,5 +1,11 @@
 # Monitoring: what to measure, and what the numbers actually mean
 
+![The fleet monitor, one station selected](images/monitor.png)
+
+*The board as it ran on 2026-11-27: KPI row, window buttons, per-station table, a live activity rail on the
+right, and the task-topic list beneath. The `gr2c3p8` row is selected, so both lists show only that
+station's work.*
+
 Written 2026-11-27 after a session in which nearly every wrong conclusion came from a correctly
 measured number read at the wrong scope. The lesson is not 'monitor more'; it is that a number is
 only meaningful with its unit, its window, its clock and its base.

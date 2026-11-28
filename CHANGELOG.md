@@ -1,3 +1,8 @@
+## 2026-11-27 (late) - the monitor has a picture
+
+- `docs/images/monitor.png`, referenced from `docs/monitoring.md`: the board as it ran, with a station
+  selected so the filtering is visible.
+
 ## 2026-11-27 (late) - credit for free AI to the people
 
 - `CREDITS.md`: DeepAI Code credited in the operator's words for offering an awesome tool *and free AI
