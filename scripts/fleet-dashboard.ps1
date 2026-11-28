@@ -1,4 +1,4 @@
-<#
+﻿<#
   fleet-dashboard.ps1 - browser dashboard for the fleet, served by the coordinator.
 
   Per station: is it working, on what, how fast, how utilised over 15 minutes, and what failed.
@@ -6,8 +6,60 @@
   /health is cached ~1.5 s: computing per request was slow enough to time out under load.
 #>
 [CmdletBinding()]
-param([int] $Port = 8080, [string] $Share = '', [string] $BindAddress = '', [int] $CacheMs = 1500)
+param([int] $Port = 8080, [string] $Share = '', [string] $BindAddress = '', [int] $CacheMs = 8000)
 $ErrorActionPreference = 'Continue'
+. 'C:\Users\Maarten\fleet\FleetCounter.ps1'
+$script:baseCreated = Get-Created
+$script:doneCache = -1
+$script:doneCacheAt = [datetime]::MinValue
+$script:winCache = $null
+$script:winAt = [datetime]::MinValue
+function Get-Tput {
+    $rows = @()
+    $f = Join-Path (Join-Path $Share 'status') 'queue-monitor.log'
+    if (-not (Test-Path $f)) { return $rows }
+    foreach ($ln in @(Get-Content $f -Tail 90 -ErrorAction SilentlyContinue)) {
+        $m = [regex]::Match($ln, '^(\S+)\s+queue=(\d+).*completed5m=(\d+)')
+        if ($m.Success) { $rows += [ordered]@{ t = $m.Groups[1].Value; q = [int]$m.Groups[2].Value; c = [int]$m.Groups[3].Value } }
+    }
+    return $rows
+}
+
+function Get-Specs {
+    try {
+        $f = Join-Path (Join-Path $Share 'status') 'specs.json'
+        if (Test-Path $f) { return (Get-Content $f -Raw -ErrorAction Stop | ConvertFrom-Json) }
+    } catch { }
+    return $null
+}
+
+function Win-Counts {
+    if (((Get-Date).ToUniversalTime() - $script:winAt).TotalSeconds -lt 60 -and $script:winCache) { return $script:winCache }
+    $now = (Get-Date).ToUniversalTime()
+    $b = [ordered]@{ h1 = 0; h6 = 0; d1 = 0; w1 = 0; all = 0 }
+    try {
+        foreach ($f in @(Get-ChildItem (Join-Path $Share 'results') -Recurse -File -Filter 'result-*.json' -ErrorAction SilentlyContinue)) {
+            $age = ($now - $f.LastWriteTimeUtc).TotalHours
+            $b.all++
+            if ($age -le 168) { $b.w1++ }
+            if ($age -le 24) { $b.d1++ }
+            if ($age -le 6) { $b.h6++ }
+            if ($age -le 1) { $b.h1++ }
+        }
+    } catch { }
+    $script:winCache = $b
+    $script:winAt = $now
+    return $b
+}
+
+function Done-Total {
+    if (((Get-Date).ToUniversalTime() - $script:doneCacheAt).TotalSeconds -gt 60) {
+        try { $script:doneCache = @(Get-ChildItem (Join-Path $Share 'results') -Recurse -File -Filter 'result-*.json' -ErrorAction SilentlyContinue).Count } catch { }
+        $script:doneCacheAt = (Get-Date).ToUniversalTime()
+    }
+    return [int]$script:doneCache
+}
+$script:startedAt = (Get-Date).ToUniversalTime().ToString('o')
 
 if (-not $Share) {
     $unc = Join-Path (Split-Path -Parent $PSCommandPath) 'coordinator.unc'
@@ -48,7 +100,7 @@ function Compute {
         $claimDir = Join-Path (Join-Path $Share 'claimed') $name
         $claimFiles = @(Get-ChildItem $claimDir -File -Filter 'task-*.json' -ErrorAction SilentlyContinue)
         $running = @($claimFiles | ForEach-Object { $_.BaseName -replace '^task-', '' } | Sort-Object | Select-Object -First 4)
-        $res = @(Get-ChildItem $resDir -File -Filter 'result-*.json' -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt $nowUtc.AddMinutes(-30) })
+        $res = @(Get-ChildItem $resDir -File -Filter 'result-*.json' -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime.ToUniversalTime() -gt $nowUtc.AddMinutes(-30) })
         $series = [int[]]::new(30)
         foreach ($f in $res) {
             $mins = [int]($nowUtc - $f.LastWriteTime.ToUniversalTime()).TotalMinutes
@@ -72,7 +124,7 @@ function Compute {
                     $d = ([datetime]::Parse($j.finishedAt).ToUniversalTime() - [datetime]::Parse($j.claimedAt).ToUniversalTime()).TotalMilliseconds
                     if ($d -ge 0) {
                         $durs += [int]$d
-                        if ($r.LastWriteTime -gt $nowUtc.AddMinutes(-15)) { $busyMs += $d }
+                        if ($r.LastWriteTime.ToUniversalTime() -gt $nowUtc.AddMinutes(-15)) { $busyMs += $d }
                     }
                 }
             } catch { }
@@ -81,10 +133,10 @@ function Compute {
         if ($durs.Count) { $med = ($durs | Sort-Object)[[int]($durs.Count / 2)] }
         $util = [math]::Min(100, [math]::Round(100.0 * $busyMs / (15 * 60 * 1000), 1))
         $state = if ($age -gt 120) { 'STALE' } else { 'ok' }
-        $nodes[$name] = [ordered]@{ state = $state; heartbeatAge = $age; active = $active; running = $running; runningCount = $claimFiles.Count; finished15m = @($res | Where-Object { $_.LastWriteTime -gt $nowUtc.AddMinutes(-15) }).Count; medianMs = $med; failures = $fails; utilPct = $util; series = $series }
+        $nodes[$name] = [ordered]@{ state = $state; heartbeatAge = $age; active = $active; running = $running; runningCount = $claimFiles.Count; finished15m = @($res | Where-Object { $_.LastWriteTime.ToUniversalTime() -gt $nowUtc.AddMinutes(-15) }).Count; medianMs = $med; failures = $fails; utilPct = $util; series = $series }
     }
 
-    $order = $nodes.Keys | Sort-Object @{ Expression = { if ($nodes[$_].state -eq 'DOWN') { 2 } elseif ($nodes[$_].active -gt 0) { 0 } else { 1 } } }, @{ Expression = { $nodes[$_].active }; Descending = $true }
+    $order = $nodes.Keys | Sort-Object   # fixed order: a three-station board does not need to rearrange itself
     $sorted = [ordered]@{}
     foreach ($k in $order) { $sorted[$k] = $nodes[$k] }
     $working = @($nodes.Keys | Where-Object { $nodes[$_].active -gt 0 }).Count
@@ -98,7 +150,30 @@ function Compute {
     $monitor = 'n/a'
     $h = Join-Path $statusDir 'health.json'
     if (Test-Path $h) { try { $m = Get-Content $h -Raw | ConvertFrom-Json; $monitor = 'healthy=' + $m.healthy + ' anomalies=' + @($m.anomalies).Count } catch { } }
-    [ordered]@{ ts = $nowUtc.ToString('o'); queue = $qFiles.Count; queueOldestSec = $oldest; claimed = $claimed; locks = $locks; working = $working; total = $nodes.Count; nodes = $sorted; reaper = $reaper; monitor = $monitor }
+    $ev = @()
+$topicLookups = 0
+$hbRoot = Join-Path $Share 'results'
+foreach ($nd in @(Get-ChildItem $hbRoot -Directory -ErrorAction SilentlyContinue)) {
+    $hf = Join-Path $nd.FullName 'heartbeat.json'
+    if (Test-Path $hf) {
+        try {
+            $hj = Get-Content $hf -Raw -ErrorAction Stop | ConvertFrom-Json
+            if ($hj.ids) { foreach ($rid in @($hj.ids)) { if ($rid) { $tp = ''; $cf = Join-Path (Join-Path (Join-Path $Share 'claimed') $nd.Name) ('task-' + $rid + '.json'); try { if (Test-Path $cf) { $tj = Get-Content $cf -Raw -ErrorAction Stop | ConvertFrom-Json; if ($tj.payload.topic) { $tp = [string]$tj.payload.topic } elseif ($tj.topic) { $tp = [string]$tj.topic } } } catch { }; $ev += [ordered]@{ id = [string]$rid; node = $nd.Name; state = 'running'; ts = (Get-Date).ToUniversalTime().ToString('o'); ms = 0; topic = $tp } } } }
+        } catch { }
+    }
+}
+$evLog = Join-Path (Join-Path $Share 'status') 'events.log'
+if (Test-Path $evLog) {
+    try {
+        foreach ($ln in @(Get-Content $evLog -Tail 150 -ErrorAction SilentlyContinue)) {
+            $p = $ln.Split('|')
+            if ($p.Count -ge 5) { $tp2 = ''; if ($topicLookups -lt 30) { $cbase = Join-Path (Join-Path $Share 'claimed') $p[1]; foreach ($cf2 in @((Join-Path $cbase ('task-' + $p[2] + '.json')), (Join-Path (Join-Path $cbase 'done') ('task-' + $p[2] + '.json')))) { try { if (Test-Path $cf2) { $tj2 = Get-Content $cf2 -Raw -ErrorAction Stop | ConvertFrom-Json; if ($tj2.payload.topic) { $tp2 = [string]$tj2.payload.topic; $topicLookups++; break } elseif ($tj2.topic) { $tp2 = [string]$tj2.topic; $topicLookups++; break } } } catch { } } }; $ev += [ordered]@{ id = $p[2]; node = $p[1]; state = 'done'; ts = $p[0]; ms = [int]$p[4]; topic = $tp2 } }
+        }
+    } catch { }
+}
+$ev = @($ev | Sort-Object { $_.ts } -Descending | Select-Object -First 150)
+$pending = $qFiles.Count + (@($nodes.Keys | ForEach-Object { [int]$nodes[$_].active }) | Measure-Object -Sum).Sum
+[ordered]@{ ts = $nowUtc.ToString('o'); queue = $qFiles.Count; queueOldestSec = $oldest; claimed = $claimed; locks = $locks; working = $working; total = $nodes.Count; nodes = $sorted; reaper = $reaper; monitor = $monitor; created = (Get-Created); tput = (Get-Tput); createdNew = ((Get-Created) - $script:baseCreated); startedAt = $script:startedAt; doneTotal = (Done-Total); specs = (Get-Specs); doneWin = (Win-Counts); uptimeSec = ([int]((Get-Date) - [datetime]::Parse($script:startedAt)).TotalSeconds); pending = $pending; events = $ev }
 }
 
 function Health {
@@ -114,7 +189,7 @@ function Health {
 }
 
 $page = @'
-<!doctype html><html><head><meta charset="utf-8"><title>Fleet</title>
+<!doctype html><html><head><meta charset="utf-8"><title>FleetWatch</title>
 <style>
 :root{color-scheme:dark}body{font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;background:#111;color:#e6e6e6;margin:0;padding:22px}
 h1{font-size:15px;font-weight:600;margin:0 0 4px}.sub{color:#888;margin-bottom:16px;font-size:12px}
@@ -126,21 +201,61 @@ th{color:#888;font-weight:500;font-size:11px;text-transform:uppercase;letter-spa
 .kpi div{border:1px solid #242424;border-radius:8px;padding:8px 14px;min-width:76px}
 .kpi b{display:block;font-size:18px;font-weight:600}
 .kpi span{color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.05em}
-tr.work td{background:#12201a}tr.work td:first-child{box-shadow:inset 3px 0 0 #4ade80}
+tr.sel td{background:#132a3a!important}tr.work td{background:#12201a}tr.work td:first-child{box-shadow:inset 3px 0 0 #4ade80}
+
+
 .now{font-size:12px;color:#bbb;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .track{display:inline-block;width:70px;height:6px;background:#242424;border-radius:3px;vertical-align:middle}
 .bar{display:inline-block;height:6px;border-radius:3px;background:#4ade80;vertical-align:middle}
+body{padding-right:300px}
+#log{position:fixed;right:0;top:0;bottom:0;width:280px;overflow-y:auto;border-left:1px solid #242424;padding:14px 10px;font-size:11px;background:#111;transition:width .15s}
+#log.wide{width:620px}
+#log.min{width:54px;padding:8px 4px;cursor:pointer} #log.min #loglist{display:none} #log.min h2 span{display:flex} #log.min #xmin{display:none} body.min{padding-right:62px}
+body.wide{padding-right:640px}
+#log h2{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+#xlog{background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:5px;font:inherit;font-size:10px;padding:2px 7px;cursor:pointer}
+.ev{display:flex;gap:7px;align-items:center;padding:3px 0;border-bottom:1px solid #1b1b1b;white-space:nowrap;overflow:hidden}
+.ev .id{flex:1;overflow:hidden;text-overflow:ellipsis;color:#bbb}
+.ev .nd{color:#666;font-size:10px}
+.ring{width:14px;height:14px;flex:0 0 14px}
+.dot{width:8px;height:8px;border-radius:50%;background:#4ade80;flex:0 0 8px}
+.ficon[data-form=laptop]{border-color:#2f6d94;background:#0b1620}
+.ficon[data-form=laptop] .fform{color:#5eb8e0;font-weight:600}
+.ficon[data-form=desktop]{border-color:#8a6320;background:#1a1408}
+.ficon[data-form=desktop] .fform{color:#e8b45e;font-weight:600}
+.ficon:hover{opacity:1!important}
 </style></head><body>
-<h1>Fleet</h1><div class="sub" id="sub">loading</div>
+<aside id="log"><h2>activity <span><button id="xmin" title="minimise">&#8211;</button> <button id="xmax" title="maximise">&#9723;</button></span></h2><div id="loglist"></div></aside>
+<h1>FleetWatch</h1><div id="fleet-icons" style="display:flex;gap:14px;align-items:center;margin:6px 0 2px"></div><div id="specbox" style="font-size:11px;color:#bbb;margin:0 0 10px;min-height:0"></div><div class="sub" id="sub">loading</div>
+<p id="ctl"><button data-cmd="refill">refill</button> <button data-cmd="pause">pause</button> <button data-cmd="resume">resume</button> <button data-cmd="drain">drain</button> <button data-cmd="alarm" style="border-color:#8a2020">alarm</button> <span class="dim" id="ctlmsg"></span></p>
+<p><button id="restart" data-token="__RESTART_TOKEN__" style="background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:6px;padding:6px 12px;font:inherit;cursor:pointer">restart dashboard</button> <span class="dim" id="rsmsg"></span></p>
 <div class="kpi">
 <div><span>working</span><b id="w">-</b></div>
-<div><span>queue</span><b id="q">-</b></div>
+<div><span>new since restart</span><b id="crnew">-</b></div><div><span>completed 1h</span><b id="cw">-</b></div><div><span>pending</span><b id="pend">-</b></div><div><span>queue</span><b id="q">-</b></div>
 <div><span>oldest queued</span><b id="qo">-</b></div>
 <div><span>claimed</span><b id="c">-</b></div>
 <div><span>claim markers</span><b id="l">-</b></div>
+<div><span>tasks created</span><b id="cr">__CREATED__</b></div>
 </div>
-<table><thead><tr><th>station</th><th>state</th><th>hb</th><th>active</th><th>running now</th><th>done 15m</th><th>util 15m</th><th>activity, last 30 min</th><th>median</th><th>fail</th></tr></thead>
+<p id="winbar"><button id="w1h">1h</button> <button id="w6h">6h</button> <button id="wd1">24h</button> <button id="ww1">7d</button> <button id="wAll">all</button></p>
+<table><thead><tr><th>station</th><th>state</th><th>hb</th><th >active</th><th>running now</th><th>done 15m</th><th>util 15m</th><th>activity, last 30 min</th><th>median</th><th>fail</th></tr></thead>
 <tbody id="rows"></tbody></table>
+
+<div style="display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap;margin-top:18px">
+  <div style="flex:1 1 420px;min-width:320px">
+    <h2 style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px">task topics</h2>
+    <div id="topics" style="font-size:11px;color:#bbb"></div>
+  <div style="flex:0 1 380px;min-width:280px">
+    <h2 style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px">console</h2>
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <input id="cmsg" placeholder="message to the agent..." style="flex:1;background:#141414;color:#e6e6e6;border:1px solid #333;border-radius:6px;padding:5px 8px;font:inherit;font-size:11px">
+      <button id="csend" style="background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:6px;font:inherit;font-size:11px;padding:5px 12px;cursor:pointer">send</button>
+    </div>
+    <div id="clog" style="font-size:11px;opacity:.75;line-height:1.5"></div>
+  </div>
+  </div>
+  
+</div>
 <p class="dim" id="foot"></p>
 <script>
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c];});}
@@ -182,7 +297,7 @@ async function tick(){
    let now='-';
    if(ids.length){now=ids.map(esc).join(', ');if(v.runningCount>ids.length){now+=' +'+(v.runningCount-ids.length);}}
    const util=Math.min(100,Math.round(v.utilPct||0));
-   html+='<tr class="'+work+'"><td>'+esc(n)+'</td><td class="'+scls+'">'+v.state+'</td>'
+   html+='<tr class="'+work+(selNode===n?' sel':'')+'" onclick="pickNode(\''+esc(n)+'\')" style="cursor:pointer"><td>'+esc(n)+'</td><td class="'+scls+'">'+v.state+'</td>'
         +'<td class="'+hcls+'">'+hb+'</td><td>'+v.active+'</td>'
         +'<td class="now" title="'+esc(now)+'">'+now+'</td>'
         +'<td>'+v.finished15m+'</td>'
@@ -198,7 +313,39 @@ async function tick(){
  }
 }
 tick();setInterval(tick,2000);
-</script></body></html>
+</script><script>document.getElementById("restart").onclick=async()=>{const b=document.getElementById("restart"),m=document.getElementById("rsmsg");const t=b.getAttribute("data-token");m.textContent="restarting...";const r=await fetch("/restart",{method:"POST",headers:{"X-Restart-Token":t}});if(r.status===202){m.textContent="restart accepted - reloading in 5s";setTimeout(()=>location.reload(),5000);}else{m.textContent="refused ("+r.status+")";}};</script>
+<script id="createdPoll">setInterval(async()=>{try{const r=await fetch("/health",{cache:"no-store"});const d=await r.json();const e=document.getElementById("cr");if(e&&d.created!==undefined)e.textContent=d.created;}catch(x){}},2000);</script>
+<script>
+const R=6.5,C=2*Math.PI*R;
+function ring(p){return '<svg class="ring" viewBox="0 0 16 16"><circle cx="8" cy="8" r="'+R+'" fill="none" stroke="#2a2a2a" stroke-width="2"></circle><circle cx="8" cy="8" r="'+R+'" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" transform="rotate(-90 8 8)" stroke-dasharray="'+C+'" stroke-dashoffset="'+(C*(1-p))+'" /></svg>';}
+let selNode=null;function pickNode(n){selNode=(selNode===n)?null:n;}
+function renderLog(ev){ev=(selNode?ev.filter(function(e){return e.node===selNode;}):ev);const box=document.getElementById('loglist');if(!box)return;const now=Date.now();box.innerHTML=ev.map(function(e){const age=(now-Date.parse(e.ts))/1000;if(e.state==='running'){return '<div class="ev">'+ring(Math.min(0.95,Math.max(0.05,age/6)))+'<span class="id">'+e.id+'</span><span class="nd">'+e.node+'</span></div>';}return '<div class="ev"><span class="dot"></span><span class="id">'+e.id+'</span><span class="nd">'+e.node+(e.ms?' '+e.ms+'ms':'')+'</span></div>';}).join('');}
+const logEl=document.getElementById('log');
+const mx=document.getElementById('xmax');if(mx){mx.onclick=function(){logEl.classList.toggle('wide');document.body.classList.toggle('wide');};}
+const mn=document.getElementById('xmin');if(mn){mn.onclick=function(){logEl.classList.toggle('min');document.body.classList.toggle('min');};}
+logEl.addEventListener('click',function(){if(logEl.classList.contains('min')){logEl.classList.remove('min');document.body.classList.remove('min');}});
+function renderIcons(sp){var box=document.getElementById('fleet-icons');if(!box)return;var keys=Object.keys(sp);if(!keys.length){box.innerHTML='';return;}box.innerHTML=keys.map(function(k){var v=sp[k];var ic=(v.form==='laptop')?'\uD83D\uDCBB':'\uD83D\uDDA5';var cls=(selNode===k)?'style="opacity:1;border-color:#4ade80"':'style="opacity:.65;border-color:#333"';return '<span class="ficon" data-n="'+k+'" data-form="'+v.form+'" '+cls+' title="'+k+' ('+v.form+')">'+ic+'<span class="fname">'+k+'<br><span class="fform">'+v.form+'</span></span></span>';}).join('');Array.prototype.forEach.call(box.querySelectorAll('.ficon'),function(el){el.onclick=function(){var n=el.getAttribute('data-n');var v=sp[n];var b=document.getElementById('specbox');if(!b)return;if(b.getAttribute('data-n')===n){b.innerHTML='';b.removeAttribute('data-n');return;}b.setAttribute('data-n',n);b.innerHTML='<b>'+n+'</b> &middot; '+v.role+' &middot; '+v.model+' &middot; '+v.cpu+' ('+v.cores+'c/'+v.threads+'t) &middot; '+v.ramGB+' GB RAM &middot; '+v.gpu+' &middot; '+v.slots+' slots &middot; '+v.freeGB+' GB free &middot; '+v.host;};});}
+function renderTopics(ev){const box=document.getElementById('topics');if(!box)return;if(selNode)ev=ev.filter(function(e){return e.node===selNode;});const run=ev.filter(e=>e.state==='running'&&e.topic);const done=ev.filter(e=>e.state==='done');const parts=[];run.slice(0,10).forEach(e=>parts.push('<div>▶ <span style="color:#4ade80">'+esc(e.topic)+'</span> <span style="color:#666">'+esc(e.node)+'</span></div>'));done.slice(0,8).forEach(e=>parts.push('<div style="color:#555">✓ '+(e.topic?('<span style="color:#777">'+esc(e.topic)+'</span>'):esc(e.id))+'</div>'));box.innerHTML=parts.join('')||'<span style="color:#555">no topics yet</span>';}let winKey='h1';let lastD=null;const winMap={w1h:'h1',w6h:'h6',wd1:'d1',ww1:'w1',wAll:'all'};function updateCw(){const el=document.getElementById('cw');if(el&&lastD&&lastD.doneWin)el.textContent=lastD.doneWin[winKey];}Object.keys(winMap).forEach(function(id){const b=document.getElementById(id);if(b){b.onclick=function(){winKey=winMap[id];updateCw();};b.style.cssText='background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:5px;font:inherit;font-size:10px;padding:3px 8px;cursor:pointer';}});setInterval(async function(){try{const r=await fetch('/health',{cache:'no-store'});const d=await r.json();renderLog(d.events||[]);renderTopics(d.events||[]);renderIcons(d.specs||{});(function(){var el=document.getElementById('cw');if(el&&d.doneWin&&d.doneWin[winKey]!==undefined)el.textContent=d.doneWin[winKey];})();const cn=document.getElementById('crnew');if(cn&&d.createdNew!==undefined)cn.textContent=d.createdNew;const tot=document.getElementById('kpitot');const cur=document.querySelector('.kpi');
+function fillTotals(d){lastD=d;if(d&&d.doneWin)updateCw();var a=document.getElementById('t1');if(a)a.textContent=d.created;var b=document.getElementById('t2');if(b)b.textContent=d.doneTotal;var c=document.getElementById('t3');if(c)c.textContent=d.createdNew;var e2=document.getElementById('t4');if(e2)e2.textContent=(d.uptimeSec||0)+'s';}
+const pd=document.getElementById('pend');if(pd&&d.pending!==undefined)pd.textContent=d.pending;const cq=document.getElementById('q');if(cq&&d.queue!==undefined)cq.textContent=d.queue;}catch(x){}},400);
+</script>
+<script>
+(function(){var tok=document.getElementById('restart');var t=tok?tok.getAttribute('data-token'):'';
+Array.prototype.forEach.call(document.querySelectorAll('#ctl button'),function(b){b.style.cssText='background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:6px;font:inherit;font-size:11px;padding:4px 10px;cursor:pointer';
+b.onclick=async function(){var m=document.getElementById('ctlmsg');m.textContent=b.dataset.cmd+'...';
+try{var r=await fetch('/control?cmd='+b.dataset.cmd,{method:'POST',headers:{'X-Restart-Token':t},cache:'no-store'});var j=await r.json();
+m.textContent=r.status===200?('ok: '+j.cmd+' (pause='+j.pause+' drain='+j.drain+')'):('refused '+r.status);}catch(e){m.textContent='failed';}};
+});})();
+</script>
+<script>
+(function(){var tok=document.getElementById('restart');var t=tok?tok.getAttribute('data-token'):'';
+var b=document.getElementById('csend');
+b.onclick=async function(){var i=document.getElementById('cmsg');var v=(i.value||'').trim();if(!v)return;
+try{var r=await fetch('/control?cmd=say&text='+encodeURIComponent(v),{method:'POST',headers:{'X-Restart-Token':t}});
+var j=await r.json();i.value='';document.getElementById('clog').innerHTML=(j.recent||[]).map(function(x){return '<div>'+x+'</div>';}).join('');}catch(e){}};
+})();
+</script>
+</body></html>
 '@
 
 $prefix = 'http://' + $BindAddress + ':' + $Port + '/'
@@ -209,7 +356,64 @@ Dlog ('listening on ' + $prefix)
 while ($listener.IsListening) {
     try {
         $ctx = $listener.GetContext()
-        $body = if ($ctx.Request.Url.AbsolutePath -eq '/health') { Health } else { $page }
+        $reqPath = $ctx.Request.Url.AbsolutePath
+if ($reqPath -eq '/control') {
+    $tokFile = 'C:\Users\Maarten\fleet\restart.token'
+    $supplied = $ctx.Request.Headers['X-Restart-Token']
+    if (-not $supplied) { $supplied = $ctx.Request.QueryString['token'] }
+    $authorised = $false
+    if ((Test-Path $tokFile) -and $supplied) { $authorised = ($supplied -eq ((Get-Content $tokFile -Raw).Trim())) }
+    if (-not $authorised) {
+        $ctx.Response.StatusCode = 403
+        $body = '{"error":"control requires a valid token"}'
+    } else {
+        $cmd = [string]$ctx.Request.QueryString['cmd']
+        $ctl = 'D:\fleet\control'
+        New-Item -ItemType Directory -Force -Path $ctl | Out-Null
+        $stateFile = Join-Path $ctl 'state.json'
+        $state = @{ pause = $false; drain = $false }
+        if (Test-Path $stateFile) { try { $j = Get-Content $stateFile -Raw | ConvertFrom-Json; $state.pause = [bool]$j.pause; $state.drain = [bool]$j.drain } catch { } }
+        switch ($cmd) {
+            'pause'  { $state.pause = $true }
+            'resume' { $state.pause = $false; $state.drain = $false }
+            'drain'  { $state.drain = $true }
+            'say'    {
+                $txt = [string]$ctx.Request.QueryString['text']
+                if ($txt) {
+                    $chatDir = 'D:\fleet\chat'
+                    New-Item -ItemType Directory -Force -Path $chatDir | Out-Null
+                    (((Get-Date).ToUniversalTime().ToString('o')) + '|' + $txt) | Add-Content -LiteralPath (Join-Path $chatDir 'inbox.log') -Encoding utf8
+                    Dlog ('console > ' + $txt)
+                }
+            }
+            'alarm'  { ((Get-Date).ToUniversalTime().ToString('o')) | Set-Content -LiteralPath (Join-Path $ctl 'alarm.txt') -Encoding utf8; Dlog ('ALARM raised from ' + $ctx.Request.RemoteEndPoint.Address) }
+            'refill' { Start-Process powershell -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','C:\Users\Maarten\fleet\FleetCorpusFinder.ps1' -WindowStyle Hidden }
+        }
+        $state | ConvertTo-Json | Set-Content -LiteralPath $stateFile -Encoding utf8
+        Dlog ('control: ' + $cmd + ' pause=' + $state.pause + ' drain=' + $state.drain)
+        $ctx.Response.StatusCode = 200
+        $body = ('{"ok":true,"cmd":"' + $cmd + '","pause":' + $state.pause.ToString().ToLower() + ',"drain":' + $state.drain.ToString().ToLower() + '}')
+    }
+} elseif ($reqPath -eq '/restart') {
+    $tokFile = 'C:\Users\Maarten\fleet\restart.token'
+    $supplied = $ctx.Request.Headers['X-Restart-Token']
+    $authorised = $false
+    if ((Test-Path $tokFile) -and $supplied) {
+        $authorised = ($supplied -eq ((Get-Content $tokFile -Raw).Trim()))
+    }
+    if (-not $authorised) {
+        Dlog ('restart DENIED from ' + $ctx.Request.RemoteEndPoint.Address)
+        $ctx.Response.StatusCode = 403
+        $body = '{"error":"restart requires a valid X-Restart-Token"}'
+    } else {
+        Dlog ('restart requested by ' + $ctx.Request.RemoteEndPoint.Address)
+        schtasks /run /tn FleetDashboardRestart 2>&1 | Out-Null
+        $ctx.Response.StatusCode = 202
+        $body = '{"status":"restarting","task":"FleetDashboard"}'
+    }
+} else {
+    $body = if ($reqPath -eq '/health') { Health } else { $page.Replace('__RESTART_TOKEN__', ((Get-Content 'C:\Users\Maarten\fleet\restart.token' -Raw).Trim())).Replace('__CREATED__', [string](Get-Created)) }
+}
         $bytes = [Text.Encoding]::UTF8.GetBytes($body)
         $ctx.Response.ContentType = if ($ctx.Request.Url.AbsolutePath -eq '/health') { 'application/json' } else { 'text/html; charset=utf-8' }
         $ctx.Response.Headers.Add('Cache-Control','no-store')

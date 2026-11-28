@@ -72,3 +72,25 @@ the observed distribution, or shorten the lease for tasks that already have a re
 Sample the four figures once a minute into a CSV and set thresholds from the observed
 distribution: the 95th percentile of `claims outstanding`, the usual `queue` band, the median
 completion rate. Any threshold picked during a single burst encodes that burst.
+
+## Operator controls
+
+The board is also a control surface. Four buttons sit above the KPIs, plus one alarm:
+
+| control | effect |
+|---|---|
+| `refill` | runs the finder immediately instead of waiting for its pass |
+| `pause` | the feeder stops creating tasks; running work finishes |
+| `resume` | clears both pause and drain |
+| `drain` | stops creating, lets the queue empty, does not resume by itself |
+| `alarm` | immediate recovery: clears stale claim markers, starts a new verification cycle if supply is exhausted, kicks the finder, and restarts the local agent if nothing has completed in five minutes |
+
+Every control writes a state file under `control/` that the feeder and the queue monitor read on their
+next pass (sub-second), and is logged to `status/events.log` and `status/queue-monitor.log`. The
+controls require the restart token, which the page already holds - a control surface without an auth
+check would be a remote kill switch for anyone on the LAN.
+
+`FleetQueueMonitor.ps1` runs every minute on the coordinator and is the piece that keeps an empty
+queue honest: it distinguishes **refilling** (supply remains) from **exhausted** (nothing left to
+create), logs one line per minute for graphing, and writes `status/queue-alert.txt` only in the second
+case. An empty queue therefore always has exactly one of two meanings, and they are not the same.

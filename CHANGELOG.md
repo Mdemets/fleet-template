@@ -1,3 +1,15 @@
+## 2026-11-28 - FleetWatch, the operator console, and a queue that cannot dead-end
+
+- Renamed the monitor page to **FleetWatch** (`fleet-dashboard.ps1`), with station icons, click-to-filter
+  rows, and a console box that queues messages to the agent thread.
+- New `scripts/FleetQueueMonitor.ps1`: per-minute queue and supply line, low-water refill, and an
+  exhausted-supply alert that cannot be confused with a fault.
+- New `scripts/FleetCorpusFinder.ps1`: dispatches from a cached, authenticated corpus so no task needs
+  the network at run time - replacing a source whose tasks failed 99.9% of the time.
+- New `scripts/FleetWatchdog.ps1` and `scripts/FleetFeeder.ps1`; updated `scripts/fleet-dashboard.ps1`
+  with the control endpoint (refill/pause/resume/drain/alarm), token-checked.
+- Lessons that produced these changes: `docs/lessons-2026-11-27-night.md`.
+
 ## 2026-11-27 (late) - the monitor has a picture
 
 - `docs/images/monitor.png`, referenced from `docs/monitoring.md`: the board as it ran, with a station
