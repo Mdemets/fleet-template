@@ -1,3 +1,13 @@
+## 2026-11-28 - the repo watcher counts what it finds, and shows it is alive
+
+- `FleetRepoWatch.ps1`: a discovery window opens when a poll finds new issues. `discovered` counts topics
+  found and waiting; it resets to **0** the moment they are pulled in as tasks, while `reported` keeps the
+  window total. The window closes after ten quiet minutes. `lastPoll` / `lastResult` are written every run.
+- `fleet-dashboard.ps1`: the scope line now carries `watcher: active | stale`, how long ago it polled,
+  pending topics, and how many were reported this window - so a silent watcher is visible instead of
+  looking like a quiet repo.
+- The `since` filter was removed: it changed the URL on every poll, which makes a 304 impossible and spent
+  quota for nothing. With a stable URL and the stored ETag, an unchanged repo answers 304 and costs zero.
 ## 2026-11-28 - the board states its scope, and the console moves up
 
 - `fleet-dashboard.ps1`: a **scope line** at the top of the page, read from `status/scope.txt`, states the

@@ -25,6 +25,12 @@ function Get-Tput {
     return $rows
 }
 
+function Get-Discovery {
+    $f = Join-Path (Join-Path $Share 'status') 'repo-discovery.json'
+    if (Test-Path $f) { try { return (Get-Content $f -Raw -ErrorAction Stop | ConvertFrom-Json) } catch { } }
+    return $null
+}
+
 function Get-Scope {
     $f = Join-Path (Join-Path $Share 'status') 'scope.txt'
     if (Test-Path $f) { try { return ((Get-Content $f -Raw -ErrorAction Stop).Trim()) } catch { } }
@@ -185,7 +191,7 @@ if (Test-Path $evLog) {
 }
 $ev = @($ev | Sort-Object { $_.ts } -Descending | Select-Object -First 150)
 $pending = $qFiles.Count + (@($nodes.Keys | ForEach-Object { [int]$nodes[$_].active }) | Measure-Object -Sum).Sum
-[ordered]@{ ts = $nowUtc.ToString('o'); queue = $qFiles.Count; queueOldestSec = $oldest; claimed = $claimed; locks = $locks; working = $working; total = $nodes.Count; nodes = $sorted; reaper = $reaper; monitor = $monitor; created = (Get-Created); tput = (Get-Tput); supply = (Get-Supply); scope = (Get-Scope); createdNew = ((Get-Created) - $script:baseCreated); startedAt = $script:startedAt; doneTotal = (Done-Total); specs = (Get-Specs); doneWin = (Win-Counts); uptimeSec = ([int]((Get-Date) - [datetime]::Parse($script:startedAt)).TotalSeconds); pending = $pending; events = $ev }
+[ordered]@{ ts = $nowUtc.ToString('o'); queue = $qFiles.Count; queueOldestSec = $oldest; claimed = $claimed; locks = $locks; working = $working; total = $nodes.Count; nodes = $sorted; reaper = $reaper; monitor = $monitor; created = (Get-Created); tput = (Get-Tput); supply = (Get-Supply); scope = (Get-Scope); discovery = (Get-Discovery); createdNew = ((Get-Created) - $script:baseCreated); startedAt = $script:startedAt; doneTotal = (Done-Total); specs = (Get-Specs); doneWin = (Win-Counts); uptimeSec = ([int]((Get-Date) - [datetime]::Parse($script:startedAt)).TotalSeconds); pending = $pending; events = $ev }
 }
 
 function Health {
@@ -336,6 +342,22 @@ const logEl=document.getElementById('log');
 const at=document.getElementById('acttoggle');if(at){if(document.body.classList.contains('nolog')){at.textContent='activity: off';}else{at.classList.add('on');}at.onclick=function(){var off=document.body.classList.toggle('nolog');at.textContent='activity: '+(off?'off':'on');at.classList.toggle('on',!off);};}
 
 logEl.addEventListener('click',function(){if(logEl.classList.contains('min')){logEl.classList.remove('min');document.body.classList.remove('min');}});
+function renderDiscovery(j){
+  var el=document.getElementById('scope'); if(!el) return;
+  var d=j.discovery; if(!d) return;
+  var pend=Number(d.discovered||0), rep=Number(d.reported||0);
+  var ago=null;
+  if(d.lastPoll){ try{ ago=Math.max(0, Math.round((Date.now()-Date.parse(d.lastPoll))/1000)); }catch(e){} }
+  var active=(ago!==null && ago<900);
+  var wcol=active?'#4ade80':'#f87171';
+  var wtxt=(ago===null?'watcher: never polled':('watcher: '+(active?'active':'stale')+' &middot; polled '+(ago<120?ago+'s':Math.round(ago/60)+'m')+' ago'));
+  var line='<div style="margin-top:3px;font-size:10px"><span style="color:'+wcol+'">'+wtxt+'</span>'
+    +' &middot; pending topics <b style="color:'+(pend>0?'#e8b45e':'#777')+'">'+pend+'</b>'
+    +' &middot; reported this window '+rep
+    +(d.open?' <span style="color:#e8b45e">(update window open since '+String(d.since||'').slice(11,19)+' UTC)</span>':'')
+    +'</div>';
+  el.innerHTML = el.innerHTML.split('<div style="margin-top:3px;font-size:10px">')[0] + line;
+}
 function renderScope(j){
   var el=document.getElementById('scope'); if(!el) return;
   var t=(j&&j.scope)?String(j.scope):'';
@@ -352,7 +374,7 @@ function renderEndgame(j){
   }
 }
 function renderIcons(sp,jSt){var box=document.getElementById('fleet-icons');if(!box)return;var keys=Object.keys(sp);if(!keys.length){box.innerHTML='';return;}box.innerHTML=keys.map(function(k){var v=sp[k];var ic=(v.form==='laptop')?'\uD83D\uDCBB':'\uD83D\uDDA5';var cls=(selNode===k)?'style="opacity:1;border-color:#4ade80"':'style="opacity:.65;border-color:#333"';var st=(jSt[k]||{});var age=(st.heartbeatAge===undefined?-1:Number(st.heartbeatAge));var dot=(age<0?'#555':(age>180?'#f87171':(age>60?'#e8b45e':'#4ade80')));var off=(st.state==='offline'||age>180);return '<span class="ficon" data-n="'+k+'" data-form="'+v.form+'" '+cls+' title="'+k+' ('+v.form+') heartbeat '+age+'s">'+(off?'<span class="offdot" style="background:'+dot+'"></span>':'')+ic+'<span class="fname">'+k+'<br><span class="fform">'+v.form+'</span></span><span class="pw" data-node="'+k+'" title="reboot '+k+' after drain">&#9211;</span></span>';}).join('');Array.prototype.forEach.call(box.querySelectorAll('.pw'),function(sw){sw.onclick=function(ev){ev.stopPropagation();var n=sw.getAttribute('data-node');if(!confirm('Reboot '+n+'?\n\nIt stops claiming new tasks, finishes what is running, then restarts.'))return;if(n==='mdmfury'){var typed=prompt('The coordinator hosts the share for the whole fleet.\n\nType REBOOT to restart it:');if(!typed||typed.trim().toUpperCase()!=='REBOOT'){var b0=document.getElementById('specbox');if(b0){b0.textContent='coordinator reboot cancelled';}return;}}var tok=document.getElementById('restart');fetch('/control?cmd=reboot&node='+encodeURIComponent(n),{method:'POST',headers:{'X-Restart-Token':tok?tok.getAttribute('data-token'):''}}).then(function(r){return r.json();}).then(function(){var b=document.getElementById('specbox');if(b){b.textContent='reboot queued for '+n+' (drains, then restarts)';}}).catch(function(){});};});Array.prototype.forEach.call(box.querySelectorAll('.ficon'),function(el){el.onclick=function(){var n=el.getAttribute('data-n');var v=sp[n];var b=document.getElementById('specbox');if(!b)return;if(b.getAttribute('data-n')===n){b.innerHTML='';b.removeAttribute('data-n');return;}b.setAttribute('data-n',n);b.innerHTML='<b>'+n+'</b> &middot; '+v.role+' &middot; '+v.model+' &middot; '+v.cpu+' ('+v.cores+'c/'+v.threads+'t) &middot; '+v.ramGB+' GB RAM &middot; '+v.gpu+' &middot; '+v.slots+' slots &middot; '+v.freeGB+' GB free &middot; '+v.host;};});}
-function renderTopics(ev){const box=document.getElementById('topics');if(!box)return;if(selNode)ev=ev.filter(function(e){return e.node===selNode;});const run=ev.filter(e=>e.state==='running'&&e.topic);const done=ev.filter(e=>e.state==='done');const parts=[];run.slice(0,10).forEach(e=>parts.push('<div>▶ <span style="color:#4ade80">'+esc(e.topic)+'</span> <span style="color:#666">'+esc(e.node)+'</span></div>'));done.slice(0,8).forEach(e=>parts.push('<div style="color:#555">✓ '+(e.topic?('<span style="color:#777">'+esc(e.topic)+'</span>'):esc(e.id))+'</div>'));box.innerHTML=parts.join('')||'<span style="color:#555">no topics yet</span>';}let winKey='h1';let lastD=null;const winMap={w1h:'h1',w6h:'h6',wd1:'d1',ww1:'w1',wAll:'all'};function updateCw(){const el=document.getElementById('cw');if(el&&lastD&&lastD.doneWin)el.textContent=lastD.doneWin[winKey];}Object.keys(winMap).forEach(function(id){const b=document.getElementById(id);if(b){b.onclick=function(){winKey=winMap[id];updateCw();};b.style.cssText='background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:5px;font:inherit;font-size:10px;padding:3px 8px;cursor:pointer';}});setInterval(async function(){try{const r=await fetch('/health',{cache:'no-store'});const d=await r.json();renderLog(d.events||[]);renderTopics(d.events||[]);renderIcons(d.specs||{},d.nodes||{});renderScope(d);renderEndgame(d);(function(){var el=document.getElementById('cw');if(el&&d.doneWin&&d.doneWin[winKey]!==undefined)el.textContent=d.doneWin[winKey];})();const cn=document.getElementById('crnew');if(cn&&d.createdNew!==undefined)cn.textContent=d.createdNew;const tot=document.getElementById('kpitot');const cur=document.querySelector('.kpi');
+function renderTopics(ev){const box=document.getElementById('topics');if(!box)return;if(selNode)ev=ev.filter(function(e){return e.node===selNode;});const run=ev.filter(e=>e.state==='running'&&e.topic);const done=ev.filter(e=>e.state==='done');const parts=[];run.slice(0,10).forEach(e=>parts.push('<div>▶ <span style="color:#4ade80">'+esc(e.topic)+'</span> <span style="color:#666">'+esc(e.node)+'</span></div>'));done.slice(0,8).forEach(e=>parts.push('<div style="color:#555">✓ '+(e.topic?('<span style="color:#777">'+esc(e.topic)+'</span>'):esc(e.id))+'</div>'));box.innerHTML=parts.join('')||'<span style="color:#555">no topics yet</span>';}let winKey='h1';let lastD=null;const winMap={w1h:'h1',w6h:'h6',wd1:'d1',ww1:'w1',wAll:'all'};function updateCw(){const el=document.getElementById('cw');if(el&&lastD&&lastD.doneWin)el.textContent=lastD.doneWin[winKey];}Object.keys(winMap).forEach(function(id){const b=document.getElementById(id);if(b){b.onclick=function(){winKey=winMap[id];updateCw();};b.style.cssText='background:#1b1b1b;color:#e6e6e6;border:1px solid #333;border-radius:5px;font:inherit;font-size:10px;padding:3px 8px;cursor:pointer';}});setInterval(async function(){try{const r=await fetch('/health',{cache:'no-store'});const d=await r.json();renderLog(d.events||[]);renderTopics(d.events||[]);renderIcons(d.specs||{},d.nodes||{});renderScope(d);renderDiscovery(d);renderEndgame(d);(function(){var el=document.getElementById('cw');if(el&&d.doneWin&&d.doneWin[winKey]!==undefined)el.textContent=d.doneWin[winKey];})();const cn=document.getElementById('crnew');if(cn&&d.createdNew!==undefined)cn.textContent=d.createdNew;const tot=document.getElementById('kpitot');const cur=document.querySelector('.kpi');
 function fillTotals(d){lastD=d;if(d&&d.doneWin)updateCw();var a=document.getElementById('t1');if(a)a.textContent=d.created;var b=document.getElementById('t2');if(b)b.textContent=d.doneTotal;var c=document.getElementById('t3');if(c)c.textContent=d.createdNew;var e2=document.getElementById('t4');if(e2)e2.textContent=(d.uptimeSec||0)+'s';}
 const pd=document.getElementById('pend');if(pd&&d.pending!==undefined)pd.textContent=d.pending;const cq=document.getElementById('q');if(cq&&d.queue!==undefined)cq.textContent=d.queue;}catch(x){}},400);
 </script>
