@@ -1,3 +1,8 @@
+## 2026-11-28 - the watcher line names what it watches
+
+- `fleet-dashboard.ps1`: the watcher line now ends with `monitoring <repo>, <repo>`, read from the keys of
+  `status/repo-etags.json` - the same file the watcher uses for its ETags, so the list cannot drift from
+  what is actually polled.
 ## 2026-11-28 - the scope reads as an assignment and a question
 
 - `fleet-dashboard.ps1`: `status/scope.txt` may hold several lines. The first is the assignment and reads

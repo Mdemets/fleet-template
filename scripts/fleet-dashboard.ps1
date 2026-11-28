@@ -25,6 +25,11 @@ function Get-Tput {
     return $rows
 }
 
+function Get-WatchRepos {
+    $f = Join-Path (Join-Path $Share 'status') 'repo-etags.json'
+    if (Test-Path $f) { try { (Get-Content $f -Raw -ErrorAction Stop | ConvertFrom-Json).PSObject.Properties.Name } catch { } }
+}
+
 function Get-Discovery {
     $f = Join-Path (Join-Path $Share 'status') 'repo-discovery.json'
     if (Test-Path $f) { try { return (Get-Content $f -Raw -ErrorAction Stop | ConvertFrom-Json) } catch { } }
@@ -191,7 +196,7 @@ if (Test-Path $evLog) {
 }
 $ev = @($ev | Sort-Object { $_.ts } -Descending | Select-Object -First 150)
 $pending = $qFiles.Count + (@($nodes.Keys | ForEach-Object { [int]$nodes[$_].active }) | Measure-Object -Sum).Sum
-[ordered]@{ ts = $nowUtc.ToString('o'); queue = $qFiles.Count; queueOldestSec = $oldest; claimed = $claimed; locks = $locks; working = $working; total = $nodes.Count; nodes = $sorted; reaper = $reaper; monitor = $monitor; created = (Get-Created); tput = (Get-Tput); supply = (Get-Supply); scope = (Get-Scope); discovery = (Get-Discovery); createdNew = ((Get-Created) - $script:baseCreated); startedAt = $script:startedAt; doneTotal = (Done-Total); specs = (Get-Specs); doneWin = (Win-Counts); uptimeSec = ([int]((Get-Date) - [datetime]::Parse($script:startedAt)).TotalSeconds); pending = $pending; events = $ev }
+[ordered]@{ ts = $nowUtc.ToString('o'); queue = $qFiles.Count; queueOldestSec = $oldest; claimed = $claimed; locks = $locks; working = $working; total = $nodes.Count; nodes = $sorted; reaper = $reaper; monitor = $monitor; created = (Get-Created); tput = (Get-Tput); supply = (Get-Supply); scope = (Get-Scope); discovery = (Get-Discovery); watchRepos = (Get-WatchRepos); createdNew = ((Get-Created) - $script:baseCreated); startedAt = $script:startedAt; doneTotal = (Done-Total); specs = (Get-Specs); doneWin = (Win-Counts); uptimeSec = ([int]((Get-Date) - [datetime]::Parse($script:startedAt)).TotalSeconds); pending = $pending; events = $ev }
 }
 
 function Health {
@@ -355,6 +360,7 @@ function renderDiscovery(j){
     +' &middot; pending topics <b style="color:'+(pend>0?'#e8b45e':'#777')+'">'+pend+'</b>'
     +' &middot; reported this window '+rep
     +(d.open?' <span style="color:#e8b45e">(update window open since '+String(d.since||'').slice(11,19)+' UTC)</span>':'')
+    +' &middot; monitoring <span style="color:#9ab">'+(Array.isArray(j.watchRepos)?j.watchRepos.join(', '):'none')+'</span>'
     +'</div>';
   el.innerHTML = el.innerHTML.split('<div style="margin-top:3px;font-size:10px">')[0] + line;
 }
